@@ -121,6 +121,12 @@ see [`docs/x1.md`](docs/x1.md), which also lists what the comparison has
 found so far, including a comparison with Serge Vakulenko's independent
 X1 simulator. Every example has its X1 output in `examples/*.x1.out`.
 
+The check that counts most is the X1's own output. Zonneveld's
+outer-planets program was run on the X1 in 1964, and his thesis prints
+the result: 82 numbers. `--x1` prints 80 of them digit for digit; the
+other two differ in the last digit, where each value lies just above a
+decimal tie. See [`historical/README.md`](historical/README.md).
+
 The documents are listed in [`sources/README.md`](sources/README.md).
 
 `historical/` holds programs from the Mathematical Centre itself.
