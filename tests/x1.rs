@@ -289,6 +289,13 @@ fn an_integer_intermediate_beyond_capacity_is_real() {
 }
 
 #[test]
+fn a_half_is_rounded_away_from_zero() {
+    // Inferred (docs/decisions.md): the Report gives entier(x + 0.5).
+    let p = "integer i, j, k; i := 2.5; j := -2.5; k := -2.7; outinteger(1, i); outinteger(1, j); outinteger(1, k)";
+    assert_eq!(both(p), ("3 -2 -3 ".into(), "3 -3 -3 ".into()));
+}
+
+#[test]
 fn the_x1_flot_has_two_exponent_digits() {
     // Appendix A of the X1–X8 comparison, note 3.
     assert_eq!(run(Dialect::X1, "FLOT(5, 3.14159); FLOT(5, -0.000123)"), "+.31416⏨+ 1 -.12300⏨- 3 ");

@@ -112,11 +112,25 @@ B.1], which `docs/x1.md` cites as [X1-man]:
 - An integer intermediate result beyond the integer capacity becomes
   real.
 
-Still open:
+Inferred, with no document that says it:
 
-- How the X1 rounds a real exactly halfway between two integers. `--x1`
-  takes the Report's `entier(x + 0.5)` (−2.5 gives −2); x1sim rounds half
-  away from zero (−3). The X8, the X1's successor, rounded half away from
-  zero in hardware [KA-X1X8, 4.1], which favours x1sim but is not
-  evidence about the X1's software routine.
-- How the X1 printed the stack's zero, and what a result below it is.
+- A real exactly halfway between two integers is rounded away from zero
+  (−2.5 gives −3; the Report's `entier(x + 0.5)` gives −2). The documents
+  say only that the X1 rounds. Three things point the same way, and none
+  the other: the X1 "had integer arithmetic only. The number system was
+  one–complement" [KA03, 1.2], and in ones' complement a right shift
+  truncates towards zero, so a conversion that shifts the mantissa rounds
+  the magnitude unless extra code is written for negative numbers; the
+  X1 code of the compiler rounds its constants by adding half a unit to
+  the magnitude (AFRONDING in FT4, [KA03, ch. 10]); and the X8, its
+  successor from the same institute, rounded halves away from zero
+  [KA-X1X8, 4.1]. x1sim does the same. What would settle it: the run-time
+  complex, or the X1 manual's own text on the transfer to integer.
+
+Not knowable from the sources found, and modelled as stated:
+
+- How the X1 printed the stack's zero, whose binary exponent is about
+  −2²⁶: `print` here shows it as 0. Only the complex's `print` would say.
+- What an operation gives whose result is smaller in magnitude than the
+  stack's zero (`0 / 2`): kept at it here. The manual says only that "the
+  arithmetic operations deliver always unambiguous results".

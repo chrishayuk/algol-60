@@ -69,13 +69,12 @@ columns are two independent reconstructions from the same documents.
 | `empty-array` | stop 1–2 | error | run-time | Upper bound below lower |
 | `abs-type` | 3 | error | run-time | **Disagree.** Property 6 says `abs` has the type of its argument; x1sim's `abs` gives a real |
 | `sqrt-negative` | 2 | error | run-time | **Disagree.** Property 6 says `sqrt` takes the absolute value; x1sim's refuses |
-| `round-to-integer` | 3 −2 2 | 3 −3 2 | run-time | **Disagree.** −2.5 to an integer: `--x1` uses the Report's `entier(x + 0.5)`, x1sim rounds half away from zero. The documents say the X1 rounds [MR 35] but not how it treats halves; the X8 rounded them away from zero |
+| `round-to-integer` | 3 −3 2 | 3 −3 2 | run-time | −2.5 to an integer, −3 in both: a half rounded away from zero, against the Report's `entier(x + 0.5)`. No document says so; `--x1` infers it (`docs/decisions.md`) |
 | `switch-undefined` | error | jumps to `a` | run-time | Undefined (property 10); x1sim shows one thing it may do |
 
-In every disagreement but `round-to-integer` the manual is on the side of
-`--x1`: property 6 of [KA03, 1.3], and the extract of the X1 user manual
+In every disagreement the manual is on the side of `--x1`: property 6 of [KA03, 1.3], and the extract of the X1 user manual
 in appendix B.1 of the X1–X8 comparison, which describes the arithmetic
-of the run-time complex. `round-to-integer` is open.
+of the run-time complex.
 
 ## Zonneveld's outer planets
 

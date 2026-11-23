@@ -671,8 +671,15 @@ impl<'a> Interp<'a> {
         }
     }
 
+    /// The Report's transfer function, entier(x + 0.5). The X1 rounds
+    /// (MR 35; X1 user manual) but no source says how it treats halves.
+    /// Rounding is taken to be of the magnitude, so a half goes away from
+    /// zero: the X1's arithmetic was ones' complement, in which a shift
+    /// truncates towards zero; its compiler rounds constants by adding half
+    /// a unit to the magnitude (AFRONDING in FT4, [KA03, ch. 10]); and the
+    /// X8 rounded halves away from zero. An inference, not a document.
     fn round(&self, x: f64) -> R<i64> {
-        let r = (x + 0.5).floor();
+        let r = if self.x1() { x.round() } else { (x + 0.5).floor() };
         if !(-9.2e18..9.2e18).contains(&r) {
             return self.fail(format!("{} is too large for an integer", format_real(x)));
         }
