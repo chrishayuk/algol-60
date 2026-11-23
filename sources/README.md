@@ -16,14 +16,23 @@ them into the directories named to check a reading. All were fetched on
 | `dijkstra-mr35/` | E. W. Dijkstra, "ALGOL-60 Translation", Mathematical Centre report MR 35 (a scan without text) | https://www.cs.utexas.edu/~EWD/MCReps/MR35.PDF | OCR in `MR35.ocr.txt`. Pp. 4–5: a real assigned to an integer is rounded (`docs/decisions.md`) |
 | `sergev-x1/` | Serge Vakulenko's *x1-algol-compiler* (git clone, commit 938fa03, 27 July 2025, Apache-2.0): the X1 compiler in Pascal and C, a simulator with its own reconstruction of the run-time, a library, 22 example programs, and a translation of section 7 of the X8 library manual | https://github.com/sergev/x1-algol-compiler | The library layouts (`doc/library-procedures.md`), the input data of `historical/jaz164.in`, and the comparison in `docs/x1.md`. Read, not built |
 | `van-den-hove-2019/` | The public parts of G. van den Hove d'Ertsenryck, *New Insights from Old Programs: The Structure of The First ALGOL 60 System*, PhD thesis, University of Amsterdam, 2019: front matter, contents, appendices A (the ALGOL reports) and B (bibliography), back matter | https://dare.uva.nl/id/8ecd6e9b-767d-44ab-84a7-8eed35822da5 | The contents: chapter III, part 2 is "Executing ALGOL 60 Programs" |
+| `dijkstra-mr55/` | E. W. Dijkstra, *Objectprogramma, gegenereerd door de M.C. vertaler*, MR 55, January 1963 (a scan; OCR in `MR55.ocr.txt`) | https://www.cs.utexas.edu/~EWD/MCReps/MR55.PDF | The operations of the complex and the accumulator stack; nothing on the results of the arithmetic |
+| `mr34/` | E. W. Dijkstra, *On the Design of Machine Independent Programming Languages*, MR 34, October 1961 (OCR in `MR34.ocr.txt`) | https://www.cs.utexas.edu/~EWD/MCReps/MR34.PDF | Not used |
+| `cwi-9230/` | P. J. J. van de Laarschot and J. Nederkoorn, *Voorlopige gebruiksaanwijzing van de tweede MC ALGOL 60-vertaler*, MR 54, January 1963 | https://ir.cwi.nl/pub/9230 | The library as the second X1 system defines it (`FIXT`, `FLOT`, `print`), kept "as much alike as possible" to the first's (`docs/x1.md`, [MR54]) |
+| `cwi-9591/`, `cwi-9606/` | E. W. Dijkstra, *Cursus programmeren in ALGOL 60*, 2nd edition (February 1962) and 11th edition | https://ir.cwi.nl/pub/9591, https://ir.cwi.nl/pub/9606 | `print`, the range of reals, `x := 7/2` undefined (`docs/x1.md`, [course]) |
+| `cwi-13099/` | J. A. Zonneveld, *Automatic Numerical Integration*, Mathematical Centre Tracts 8, 1964 | https://ir.cwi.nl/pub/13099 | Pp. 102–107: JAZ164 with the X1's own output (`historical/README.md`) |
+| `cwi-8855/` | J. A. Zonneveld, *Automatic integration of ordinary differential equations*, report R 743, May 1963 | https://ir.cwi.nl/pub/8855 | JAZ023 and JAZ024 with their X1 output; not used yet |
+| `cwi-9223/` | P. J. J. van de Laarschot and J. Nederkoorn, *Text of the second ALGOL 60 translator for the X1*, MR 61, 1963 (220 pages) | https://ir.cwi.nl/pub/9223 | Not read yet |
 | `cwi-x1-programs/` | Programs for the X1 from the CWI software archive: C. H. A. Koster's jungle generator (1964 or earlier) and L. Meertens's Quinio (1964), with photographs of the listings | https://github.com/cwi-software-archive/Algol60 | See `docs/x1.md` |
 
 ## Not found
 
 - The X1 run-time complex and Kruseman Aretz's X1 emulator, which he
   describes in [KA03, 1.6].
-- The whole of the X1 user manual (MCP documentation P100), which would
-  give the layouts of `print`, `FIXT` and `ABSFIXT`. Appendix B.1 of the
+- The whole of the X1 user manual (MCP documentation P100), and the
+  complexes ALD and ALS, which "were printed as the series P (1)200"
+  [KA03, 1.1]: they would give the X1's column width for `print` and
+  settle the rest. Appendix B.1 of the
   X1–X8 comparison translates an extract; its sections on input and
   output are left out there.
 - The rest of van den Hove's thesis, held back for a book. On 23

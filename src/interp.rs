@@ -672,12 +672,12 @@ impl<'a> Interp<'a> {
     }
 
     /// The Report's transfer function, entier(x + 0.5). The X1 rounds
-    /// (MR 35; X1 user manual) but no source says how it treats halves.
-    /// Rounding is taken to be of the magnitude, so a half goes away from
-    /// zero: the X1's arithmetic was ones' complement, in which a shift
+    /// (MR 35; X1 user manual), and Dijkstra's course calls a half
+    /// undefined ("x := 7/2 ... x can just as well become 3 as 4"). Here
+    /// rounding is of the magnitude, so a half goes away from zero: the X1's arithmetic was ones' complement, in which a shift
     /// truncates towards zero; its compiler rounds constants by adding half
     /// a unit to the magnitude (AFRONDING in FT4, [KA03, ch. 10]); and the
-    /// X8 rounded halves away from zero. An inference, not a document.
+    /// X8 rounded halves away from zero.
     fn round(&self, x: f64) -> R<i64> {
         let r = if self.x1() { x.round() } else { (x + 0.5).floor() };
         if !(-9.2e18..9.2e18).contains(&r) {
@@ -1262,14 +1262,17 @@ impl<'a> Interp<'a> {
             // sergev/x1-algol-compiler (doc/library-procedures.md). No
             // description of the X1's own survives in the sources found.
             Print => {
-                // How the X1 printed the stack's zero, whose exponent has
-                // millions of decimals, is not known; it is printed as 0.
-                let x = self.arg_num(args, 0, env)?;
-                let x = if self.x1() && x.abs() == x1_zero() { 0.0 } else { x };
-                let text = if x.fract() == 0.0 && x.abs() < 1_099_511_627_776.0 {
-                    format!("{}      ", fixt(13, 0, x, true))
-                } else {
-                    flot(13, 3, x)
+                // Dijkstra's course (2nd edition, 1962): an integer is typed
+                // in at most eight decimals with non-significant zeros as
+                // spaces; a real in floating notation, and as "the integer 0
+                // or 'inf'" if its decimal exponent would exceed 600; with a
+                // sign in all cases. The layout follows the type, as in MR 54
+                // ("if type(x) = integer then FIXT(8, 0, x)"). The column of
+                // 21 positions is the X8's; the X1's tab stops are not known.
+                let v = self.eval(&args[0], env)?;
+                let text = match v {
+                    Value::Int(i) => format!("{:<21}", fixt(8, 0, i as f64, true)),
+                    v => flot(13, 3, self.num(&v)?),
                 };
                 self.write_item(&text)?;
                 Value::Undef
@@ -1374,21 +1377,21 @@ fn flot(n: i64, m: i64, x: f64) -> String {
         return flot(13, 3, x);
     }
     let (n, m) = (n as usize, m as usize);
-    let (mut digits, mut e) = (String::new(), 0i32);
-    if x.abs() == X1_REAL_MIN || x.abs() == x1_real_max() {
-        // The X1's least and greatest reals, 2^−2048 and (1 − 2^−40) × 2^2047.
-        let (d, ex) = if x.abs() == X1_REAL_MIN { ("30943460473825782754", -616) } else { ("16158503035640807577", 617) };
-        (digits, e) = round_digits(d, n, ex);
-    } else if x != 0.0 && x.abs() != x1_zero() {
-        // x = 0.d1d2... × 10^e, rounded to n digits.
-        let s = format!("{:.*e}", n - 1, x.abs());
-        let (mant, exp) = s.split_once('e').unwrap();
-        digits = mant.replace('.', "");
-        e = exp.parse::<i32>().unwrap() + 1;
+    // A number whose decimal exponent would exceed 600 in modulus, the X1's
+    // zero and its greatest real among them, is typed as "the integer 0 or
+    // 'inf'" (Dijkstra's course), with its sign, at the right of the field:
+    // a mass of 0 in Zonneveld's output of 1964 (MC Tract 8, p. 106) is
+    // `+                  0`.
+    let width = n + m + 4;
+    if x.abs() <= X1_REAL_MIN || x.abs() >= x1_real_max() {
+        let word = if x.abs() <= X1_REAL_MIN { "0" } else { "inf" };
+        return format!("{}{:>w$} ", if x < 0.0 { '-' } else { '+' }, word, w = width - 1);
     }
-    if digits.is_empty() {
-        digits = "0".repeat(n);
-    }
+    // x = 0.d1d2... × 10^e, rounded to n digits.
+    let s = format!("{:.*e}", n - 1, x.abs());
+    let (mant, exp) = s.split_once('e').unwrap();
+    let digits = mant.replace('.', "");
+    let e = exp.parse::<i32>().unwrap() + 1;
     let ee = e.unsigned_abs().to_string();
     if ee.len() > m {
         return if m == 3 && n == 13 { format!("{:e} ", x) } else { flot(13, 3, x) };
@@ -1403,31 +1406,11 @@ fn flot(n: i64, m: i64, x: f64) -> String {
     )
 }
 
-/// The first n of the decimal digits d of 0.d × 10^e, rounded.
-fn round_digits(d: &str, n: usize, e: i32) -> (String, i32) {
-    let mut v: Vec<u8> = d.bytes().map(|b| b - b'0').collect();
-    let up = v[n] >= 5;
-    v.truncate(n);
-    if up {
-        let mut i = n;
-        loop {
-            if i == 0 {
-                v.insert(0, 1);
-                v.truncate(n);
-                return (v.iter().map(|d| (d + b'0') as char).collect(), e + 1);
-            }
-            i -= 1;
-            if v[i] == 9 { v[i] = 0 } else { v[i] += 1; break }
-        }
-    }
-    (v.iter().map(|d| (d + b'0') as char).collect(), e)
-}
-
 /// ABSFIXT(n, m, x) (X8 manual, 7.3.1.8): a space, |x| with n digits
 /// before the point and m after (no point if m = 0), leading zeros as
-/// spaces except the units zero when m = 0, and a space. FIXT (7.3.1.9)
-/// puts the sign of x "instead of the space immediately preceding the
-/// first digit or the decimal point". Out of range, FLOT(13, 3, x).
+/// spaces except the units zero when m = 0, and a space. FIXT puts the
+/// sign of x in place of the first space (the X1's output of 1964; the X8
+/// manual puts it beside the first digit). Out of range, FLOT(13, 3, x).
 fn fixt(n: i64, m: i64, x: f64, signed: bool) -> String {
     if n < 0 || m < 0 || n + m > 21 {
         return flot(13, 3, x);
@@ -1449,9 +1432,11 @@ fn fixt(n: i64, m: i64, x: f64, signed: bool) -> String {
     }
     out.push(' ');
     if signed {
-        let first = out.find(|c: char| c.is_ascii_digit() || c == '.').unwrap_or(1);
-        let sign = if x < 0.0 { "-" } else { "+" };
-        out.replace_range(first - 1..first, sign);
+        // The sign stands in the first column, before the spaces of the
+        // leading zeros: `+ 3.429474152`, `- .049534455` in Zonneveld's
+        // output of 1964 (MC Tract 8, p. 103), and MR 54: "Typt teken, n
+        // decimale cijfers van geheel deel van x, ...".
+        out.replace_range(0..1, if x < 0.0 { "-" } else { "+" });
     }
     out
 }

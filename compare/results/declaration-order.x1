@@ -1,2 +1,2 @@
 warning: line 3: the X1 manual forbids this (property 15): declarations must come in the order: scalars, arrays, switches, procedures; its compiler did not check, and what followed is not known
-p            +3       
+p+       3            

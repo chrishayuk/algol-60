@@ -112,25 +112,29 @@ B.1], which `docs/x1.md` cites as [X1-man]:
 - An integer intermediate result beyond the integer capacity becomes
   real.
 
-Inferred, with no document that says it:
+Undefined, by the designer's own account:
 
-- A real exactly halfway between two integers is rounded away from zero
-  (−2.5 gives −3; the Report's `entier(x + 0.5)` gives −2). The documents
-  say only that the X1 rounds. Three things point the same way, and none
-  the other: the X1 "had integer arithmetic only. The number system was
-  one–complement" [KA03, 1.2], and in ones' complement a right shift
-  truncates towards zero, so a conversion that shifts the mantissa rounds
-  the magnitude unless extra code is written for negative numbers; the
-  X1 code of the compiler rounds its constants by adding half a unit to
-  the magnitude (AFRONDING in FT4, [KA03, ch. 10]); and the X8, its
-  successor from the same institute, rounded halves away from zero
-  [KA-X1X8, 4.1]. x1sim does the same. What would settle it: the run-time
-  complex, or the X1 manual's own text on the transfer to integer.
+- A real exactly halfway between two integers. Dijkstra's course: an
+  assignment to an integer "implies a rounding to the nearest integer
+  value", but "because of the finite precision of results of type real,
+  for an integer variable x the effect of the assignment statement
+  `x := 7/2` is undefined: x can just as well become 3 as 4". `--x1`
+  rounds a half away from zero (−2.5 gives −3, as in x1sim; the Report's
+  `entier(x + 0.5)` gives −2). That choice is an implementation's, not the
+  X1's: its arithmetic was ones' complement, in which a shift truncates
+  towards zero, so a conversion that shifts the mantissa rounds the
+  magnitude; its compiler rounds constants by adding half a unit to the
+  magnitude (AFRONDING in FT4, [KA03, ch. 10]); and the X8 rounded halves
+  away from zero [KA-X1X8, 4.1].
 
-Not knowable from the sources found, and modelled as stated:
+Answered by Dijkstra's course and the X1's output of 1964:
 
-- How the X1 printed the stack's zero, whose binary exponent is about
-  −2²⁶: `print` here shows it as 0. Only the complex's `print` would say.
-- What an operation gives whose result is smaller in magnitude than the
-  stack's zero (`0 / 2`): kept at it here. The manual says only that "the
+- A real whose decimal exponent would exceed 600, the X1's zero among
+  them, is printed as "the integer 0 or 'inf'"; the X1 printed a mass of
+  0 as `+                  0` (MC Tract 8, p. 106).
+
+Assumed:
+
+- An operation whose result is smaller in magnitude than the stack's
+  zero (`0 / 2`) gives the stack's zero. The X1 manual says only that "the
   arithmetic operations deliver always unambiguous results".

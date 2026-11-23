@@ -207,12 +207,13 @@ fn then_if_is_accepted_with_a_warning_and_else_goes_with_the_nearest_if() {
 
 #[test]
 fn the_x1_library() {
-    // print: FIXT(13, 0, x) and six spaces for a whole number, else
-    // FLOT(13, 3, x); 21 positions either way (X8 manual, 7.3.1.11).
+    // print: an integer in eight positions with its sign (Dijkstra's
+    // course; MR 54), a real by FLOT(13, 3, x), in a column of 21. SUM is a
+    // real procedure (KA03, 7), so its value is printed as a real.
     let p = "integer i; PRINTTEXT(`a'); SPACE(2); print(3); NLCR; print(SUM(i, 1, 4, i × i)); NLCR; print(1.5)";
     assert_eq!(
         run(Dialect::X1, p),
-        "a              +3       \n           +30       \n+.1500000000000⏨+  1 "
+        "a  +       3            \n+.3000000000000⏨+  2 \n+.1500000000000⏨+  1 "
     );
     assert!(run(Dialect::Report, p).contains("PRINTTEXT is not declared"));
 }
@@ -244,14 +245,14 @@ fn fixt_and_absfixt_follow_the_manual() {
              pr(4, 0, -56.789); pr(1, 20, 8 / 7); pr(0, 21, -1 / 7); pr(2, 0, 0.0); pr(4, 1, 0.5)";
     assert_eq!(
         run(Dialect::X1, p),
-        "/   57   -57 /\n/ 1.14285714285688300151 +1.14285714285688300151 /\n/ .142857142857110375189 -.142857142857110375189 /\n/  0  +0 /\n/     .5     +.5 /\n"
+        "/   57 -  57 /\n/ 1.14285714285688300151 +1.14285714285688300151 /\n/ .142857142857110375189 -.142857142857110375189 /\n/  0 + 0 /\n/     .5 +    .5 /\n"
     );
 }
 
 #[test]
 fn flot() {
     let p = "FLOT(13, -1⏨-111 / 7); FLOT(4, 9.9999); FLOT(1, 0)";
-    assert_eq!(run(Dialect::X1, p), "-.1428571428571⏨-111 +.1000⏨+ 2 +.0⏨+ 0 ");
+    assert_eq!(run(Dialect::X1, p), "-.1428571428571⏨-111 +.1000⏨+ 2 +     0 ");
 }
 
 // ----- the arithmetic of the X1 user manual (complex ALD) -----
@@ -264,17 +265,18 @@ fn a_real_variable_is_never_zero() {
     assert_eq!(both(p), ("true false 0 ".into(), "false true 1 ".into()));
     // E - E = 0 holds: the difference is the stack's zero, as is 0.
     assert_eq!(run(Dialect::X1, "real a; a := 2.5; outboolean(1, a - a = 0)"), "true ");
-    // It prints as the X1's least real, 2^-2048.
-    assert_eq!(run(Dialect::X1, "real a; a := 0; print(a)"), "+.3094346047383⏨-616 ");
-    assert_eq!(run(Dialect::X1, "real a; a := -1⏨-300 × 1⏨-300; print(a)"), "-.3094346047383⏨-616 ");
+    // Its decimal exponent is beyond 600, so print types "the integer 0"
+    // (Dijkstra's course; Zonneveld's output of 1964).
+    assert_eq!(run(Dialect::X1, "real a; a := 0; print(a)"), "+                  0 ");
+    assert_eq!(run(Dialect::X1, "real a; a := -1⏨-300 × 1⏨-300; print(a)"), "-                  0 ");
 }
 
 #[test]
 fn a_real_beyond_the_range_is_kept_at_the_greatest() {
     // Overflow on storing: the greatest magnitude with the sign; and 1/0
     // is a quotient by the least positive number, not an error.
-    assert_eq!(run(Dialect::X1, "real a; a := 1 / 0; print(a)"), "+.1615850303564⏨+617 ");
-    assert_eq!(run(Dialect::X1, "real a; a := -1⏨300 × 1⏨300; print(a)"), "-.1615850303564⏨+617 ");
+    assert_eq!(run(Dialect::X1, "real a; a := 1 / 0; print(a)"), "+                inf ");
+    assert_eq!(run(Dialect::X1, "real a; a := -1⏨300 × 1⏨300; print(a)"), "-                inf ");
     assert!(run(Dialect::Report, "real a; a := 1 / 0").contains("division by zero"));
 }
 
@@ -284,13 +286,14 @@ fn an_integer_intermediate_beyond_capacity_is_real() {
     // be of type integer but exceeds the integer capacity is transformed
     // automatically to real representation."
     let p = "integer i; real x; i := 67108863; x := i + 1; print(x); print(i × i)";
-    assert_eq!(run(Dialect::X1, p), "     +67108864       +.4503599493153⏨+ 16 ");
+    assert_eq!(run(Dialect::X1, p), "+.6710886400000⏨+  8 +.4503599493153⏨+ 16 ");
     assert!(run(Dialect::X1, "integer i; i := 67108863; outinteger(1, (i + 1) ÷ 2)").contains("X1 stop 1–8"));
 }
 
 #[test]
 fn a_half_is_rounded_away_from_zero() {
-    // Inferred (docs/decisions.md): the Report gives entier(x + 0.5).
+    // Undefined on the X1 by Dijkstra's course ("x := 7/2 ... x can just as
+    // well become 3 as 4"); this dialect's choice (docs/decisions.md).
     let p = "integer i, j, k; i := 2.5; j := -2.5; k := -2.7; outinteger(1, i); outinteger(1, j); outinteger(1, k)";
     assert_eq!(both(p), ("3 -2 -3 ".into(), "3 -3 -3 ".into()));
 }
@@ -308,4 +311,22 @@ fn zonnevelds_outer_planets() {
     let (out, r) = algol60::run_source_with(&read("jaz164.alg"), &read("jaz164.in"), Options { max_steps: None, dialect: Dialect::X1 });
     r.unwrap();
     assert_eq!(out, read("jaz164.x1.out"));
+}
+
+#[test]
+fn zonnevelds_output_of_1964() {
+    // The X1's own output (MC Tract 8, 1964, pp. 103-104): the same but
+    // for the last digit of two numbers that lie just above a tie of the
+    // ninth decimal (historical/README.md).
+    let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/historical/");
+    let read = |f: &str| std::fs::read_to_string(format!("{}{}", dir, f)).unwrap();
+    let (ours, x1) = (read("jaz164.x1.out"), read("jaz164.1964.out"));
+    let differ: Vec<(&str, &str)> = ours.lines().zip(x1.lines()).filter(|(a, b)| a != b).collect();
+    assert_eq!(
+        differ,
+        vec![
+            ("S      + 6.641455426 + 5.971569579 + 2.182314997 ", "S      + 6.641455425 + 5.971569579 + 2.182314997 "),
+            ("U      + 7.805112554 +16.281370897 + 7.023579152 ", "U      + 7.805112554 +16.281370896 + 7.023579152 "),
+        ]
+    );
 }
