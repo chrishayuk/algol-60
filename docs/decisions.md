@@ -89,10 +89,22 @@ Answered by the real compiler on x1sim (see
   left to right.
 - Real constants are stored in 40 bits, like variables.
 
-Still open, needing the run-time complex (x1sim's answers are a
-reconstruction, not evidence):
+Answered by descriptions of the run-time complex:
 
-- Does it round or truncate when a real is assigned to an integer
-  (x1sim rounds −2.5 to −3, `--x1` to −2), and when a real is stored?
-- What is the value of the controlled variable after a for statement?
-  (11 for `1 step 1 until 10` in both reconstructions.)
+- A real assigned to an integer is rounded, not truncated: "the inverse
+  transformation (including rounding)" [Dijkstra, MR 35, p. 4–5], done by
+  the store routine ST [KA-X1X8, 3.3.1].
+- The controlled variable after a step-until element is exhausted holds
+  the first value that failed the test (11 for `1 step 1 until 10`), and
+  the initial value if the loop body was never executed: FOR6 assigns
+  the initial value, or adds the step to V and stores it, before FOR7
+  tests [KA-X1X8, 3.3.3].
+
+Still open:
+
+- How the X1 rounds a real exactly halfway between two integers. `--x1`
+  takes the Report's `entier(x + 0.5)` (−2.5 gives −2); x1sim rounds half
+  away from zero (−3). The X8, the X1's successor, rounded half away from
+  zero in hardware [KA-X1X8, 4.1], which favours x1sim but is not
+  evidence about the X1's software routine.
+- How a real result is rounded to 40 bits when it is stored.

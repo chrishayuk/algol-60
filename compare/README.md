@@ -51,7 +51,8 @@ columns are two independent reconstructions from the same documents.
 | `conditional-type` | 1.5 1.5 | 1.5 1.5 | both | `(if b then i else 2.5) / 2` with i = 3; `/` of two integers gives a real |
 | `for-step-count` | 11 11 | 11 11 | both | The step evaluated once per time round (property 11) |
 | `for-step-first` | 7 | 7 | both | The step evaluated before the initial value is assigned (property 11) |
-| `for-variable-after` | 11 | 11 | run-time | The controlled variable after the loop |
+| `for-variable-after` | 11 | 11 | run-time | The controlled variable after the loop. Kruseman Aretz's account of FOR6 and FOR7 (step added and stored before the test) gives 11 too |
+| `for-variable-empty` | 5 11 | 5 11 | run-time | After `5 step 1 until 1` (body never executed) and `1 step 2 until 10`, as FOR6 and FOR7 imply |
 | `function-type` | 1.5 | 1.5 | run-time | An `integer procedure` can give 1.5 (property 18) |
 | `harmonic` | 5.187377517635 | 5.187377517635 | run-time | The sum of 1/n to 100 with 40-bit stores |
 | `own-recursive` | 4 | 4 | run-time | One `own` variable shared by all activations |
@@ -63,7 +64,7 @@ columns are two independent reconstructions from the same documents.
 | `empty-array` | stop 1–2 | error | run-time | Upper bound below lower |
 | `abs-type` | 3 | error | run-time | **Disagree.** Property 6 says `abs` has the type of its argument; x1sim's `abs` gives a real |
 | `sqrt-negative` | 2 | error | run-time | **Disagree.** Property 6 says `sqrt` takes the absolute value; x1sim's refuses |
-| `round-to-integer` | 3 −2 2 | 3 −3 2 | run-time | **Disagree.** −2.5 to an integer: `--x1` uses the Report's `entier(x + 0.5)`, x1sim rounds half away from zero. No source says what the X1's complex did |
+| `round-to-integer` | 3 −2 2 | 3 −3 2 | run-time | **Disagree.** −2.5 to an integer: `--x1` uses the Report's `entier(x + 0.5)`, x1sim rounds half away from zero. The documents say the X1 rounds [MR 35] but not how it treats halves; the X8 rounded them away from zero |
 | `switch-undefined` | error | jumps to `a` | run-time | Undefined (property 10); x1sim shows one thing it may do |
 
 In the first two disagreements the manual is on the side of `--x1`. The
