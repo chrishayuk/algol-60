@@ -20,7 +20,8 @@ The report gives no input data. `jaz164.in` is the input of
 Run through the real 1964 compiler on sergev's X1 simulator (see
 `compare/README.md`), the same file prints the same 88 numbers. The
 compiler there is the original; the run-time routines are a
-reconstruction, like this one, since the X1's were never published.
+reconstruction, like this one, since no copy of the X1's has been found (they were printed as the
+Mathematical Centre's series P(1)200).
 
 ## The X1's own output, 1964
 
@@ -32,7 +33,7 @@ punches its output with `FLOP`, `FIXP` and `ABSFIXP`, the punching
 counterparts of `FLOT`, `FIXT` and `ABSFIXT` with the same layout (MR 54);
 the version of 2003 types it.
 
-`jaz164.1964.out` is the first run (eps = 10⁻⁴, pages 103–104), read from
+`jaz164.1964.out` is the first run (eps = 10⁻³, page 103), read from
 the scan's text layer and laid out like `jaz164.x1.out`. Its 82 numbers
 are those of `jaz164.x1.out` but for the last digit of two:
 

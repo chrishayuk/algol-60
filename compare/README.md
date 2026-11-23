@@ -22,8 +22,9 @@ programs read.
 
 The X1 system had two halves. The **compiler** survives, and x1sim runs
 it. The **run-time complex** (the routines the object code calls for
-arithmetic, for statements, procedure calls, input and output) was never
-published; x1sim's is Vakulenko's reconstruction, as `--x1` is this
+arithmetic, for statements, procedure calls, input and output) was
+printed by the Mathematical Centre as the series P(1)200, but no copy has
+been found; x1sim's is Vakulenko's reconstruction, as `--x1` is this
 project's. So where a result is decided by the compiler, x1sim is
 evidence about the real X1. Where it is decided by the run-time, the two
 columns are two independent reconstructions from the same documents.

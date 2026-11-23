@@ -315,7 +315,7 @@ fn zonnevelds_outer_planets() {
 
 #[test]
 fn zonnevelds_output_of_1964() {
-    // The X1's own output (MC Tract 8, 1964, pp. 103-104): the same but
+    // The X1's own output (MC Tract 8, 1964, p. 103): the same but
     // for the last digit of two numbers that lie just above a tie of the
     // ninth decimal (historical/README.md).
     let dir = concat!(env!("CARGO_MANIFEST_DIR"), "/historical/");
