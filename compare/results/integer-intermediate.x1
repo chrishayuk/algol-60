@@ -1,0 +1,2 @@
+     +67108864           +134217726       
+compare/probes/integer-intermediate.a60: line 3: X1 stop 1–1: an integer value (67108864) exceeds the integer capacity

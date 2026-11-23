@@ -59,16 +59,23 @@ columns are two independent reconstructions from the same documents.
 | `zero-is-integer` | 0 | 0 | both | `0.0 ÷ 1` is allowed: zero is an integer (property 4) |
 | `integer-power` | 64, 0.5 | 64, 0.5 | run-time | `2↑3↑2` and `2↑(−1)` |
 | `division-truncates` | −3 −3 | −3 −3 | run-time | `÷` truncates towards zero |
-| `integer-overflow` | stop 1–1 | error | run-time | 67108863 + 1 overflows |
-| `large-literal` | error | error | both | 67108864 is real, so `÷` refuses it (property 4) |
+| `integer-overflow` | stop 1–1 | error | run-time | `i := i + 1` with i = 67108863: the sum is real (X1 manual), and assigning it to i is stop 1–1 |
+| `large-literal` | stop 1–8 | error | both | 67108864 is real, so `÷` refuses it (property 4; stop 1–8) |
+| `integer-intermediate` | 67108864 134217726, stop 1–1 | error | run-time | **Disagree.** The X1 manual: an integer intermediate result beyond the capacity "is transformed automatically to real representation". Only the assignment to an integer stops |
+| `real-zero` | 0 1 1, 1, .3094⏨−616 | 1 0 0, 1, 0 | run-time | **Disagree.** The X1 manual: 0 as a real is the least positive number, "the relation 'a = 0' can never have the value true for variable a of type real". `E − E = 0` holds in both |
+| `divide-by-zero` | 1 | error | run-time | **Disagree.** `1 / 0` divides by the least positive number, and storing the quotient gives the greatest real (X1 manual) |
+| `ln-negative` | 0 7 | error | run-time | **Disagree.** The X1 manual, point 6: "sqrt and ln operate on the absolute value of their argument"; `entier` may have an integer argument |
+| `flot-two` | +.31416⏨+ 1 | +.31416⏨+ 1 | run-time | Agree. The X1's `FLOT` has a two-digit exponent (X1–X8 comparison, appendix A, note 3) |
 | `empty-array` | stop 1–2 | error | run-time | Upper bound below lower |
 | `abs-type` | 3 | error | run-time | **Disagree.** Property 6 says `abs` has the type of its argument; x1sim's `abs` gives a real |
 | `sqrt-negative` | 2 | error | run-time | **Disagree.** Property 6 says `sqrt` takes the absolute value; x1sim's refuses |
 | `round-to-integer` | 3 −2 2 | 3 −3 2 | run-time | **Disagree.** −2.5 to an integer: `--x1` uses the Report's `entier(x + 0.5)`, x1sim rounds half away from zero. The documents say the X1 rounds [MR 35] but not how it treats halves; the X8 rounded them away from zero |
 | `switch-undefined` | error | jumps to `a` | run-time | Undefined (property 10); x1sim shows one thing it may do |
 
-In the first two disagreements the manual is on the side of `--x1`. The
-third is open.
+In every disagreement but `round-to-integer` the manual is on the side of
+`--x1`: property 6 of [KA03, 1.3], and the extract of the X1 user manual
+in appendix B.1 of the X1–X8 comparison, which describes the arithmetic
+of the run-time complex. `round-to-integer` is open.
 
 ## Zonneveld's outer planets
 

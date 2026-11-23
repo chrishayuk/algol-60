@@ -11,7 +11,7 @@ them into the directories named to check a reading. All were fetched on
 | `modified-report-1976/` | De Morgan, Hill and Wichmann, "Modified Report on the Algorithmic Language ALGOL 60" (HTML) | https://www.masswerk.at/algol60/modified_report.htm | The input and output procedures |
 | `knuth-man-or-boy-1964/` | D. E. Knuth, "Man or boy?", *Algol Bulletin* 17.2.4, July 1964, page 7 (`A17P7.GIF`, a scan) | https://archive.computerhistory.org/resources/text/algol/algol_bulletin/A17/A17P7.GIF | `examples/man-or-boy-1964.alg`. Knuth conjectured −121 for k = 10, "probably wrong"; the answer is −67 |
 | `kruseman-aretz-x1-2003/` | F. E. J. Kruseman Aretz, *The Dijkstra–Zonneveld ALGOL 60 compiler for the Electrologica X1*, CWI note SEN-N0301, 2003 (338 pages) | https://gtoal.com/languages/algol60/x1algol/Electrologica_X1.pdf (also https://ir.cwi.nl/pub/4155) | The X1 dialect: the 23 properties of section 1.3, the stops of appendix A, the library of chapter 7, and the program of appendix B (`historical/jaz164.alg`) |
-| `kruseman-aretz-x1-x8/` | F. E. J. Kruseman Aretz, *A comparison between the ALGOL 60 implementations on the Electrologica X1 and the Electrologica X8* (182 pages) | https://gtoal.com/languages/algol60/x1algol/Electrologica-X1-vs-X8.pdf (also https://ir.cwi.nl/pub/13677) | The representation of values (3.2) and the run-time for statement (3.3.3) |
+| `kruseman-aretz-x1-x8/` | F. E. J. Kruseman Aretz, *A comparison between the ALGOL 60 implementations on the Electrologica X1 and the Electrologica X8* (182 pages) | https://gtoal.com/languages/algol60/x1algol/Electrologica-X1-vs-X8.pdf (also https://ir.cwi.nl/pub/13677) | The representation of values (3.2), the run-time for statement (3.3.3), the X1's `FLOT` (appendix A, note 3), and appendix B.1, an extract of the X1 ALGOL user manual itself in translation: the arithmetic of the run-time complex (`docs/x1.md`, [X1-man]) |
 | `gtoal-x1algol/` | Graham Toal's text rebuilds: `x1algol.pas` (Kruseman Aretz's Pascal version of the X1 compiler) and `x8algol.a60` (the X8 compiler, in ALGOL 60, with underlined word delimiters) | https://gtoal.com/languages/algol60/x1algol/ | The X1 library names; `x8algol.a60` as a large test of the parser (it parses completely; it needs the X8's own library to go further) |
 | `dijkstra-mr35/` | E. W. Dijkstra, "ALGOL-60 Translation", Mathematical Centre report MR 35 (a scan without text) | https://www.cs.utexas.edu/~EWD/MCReps/MR35.PDF | OCR in `MR35.ocr.txt`. Pp. 4–5: a real assigned to an integer is rounded (`docs/decisions.md`) |
 | `sergev-x1/` | Serge Vakulenko's *x1-algol-compiler* (git clone, commit 938fa03, 27 July 2025, Apache-2.0): the X1 compiler in Pascal and C, a simulator with its own reconstruction of the run-time, a library, 22 example programs, and a translation of section 7 of the X8 library manual | https://github.com/sergev/x1-algol-compiler | The library layouts (`doc/library-procedures.md`), the input data of `historical/jaz164.in`, and the comparison in `docs/x1.md`. Read, not built |
@@ -22,8 +22,10 @@ them into the directories named to check a reading. All were fetched on
 
 - The X1 run-time complex and Kruseman Aretz's X1 emulator, which he
   describes in [KA03, 1.6].
-- The X1 user manual itself, which would give the layouts of `print`,
-  `FLOT`, `FIXT` and `ABSFIXT`.
+- The whole of the X1 user manual (MCP documentation P100), which would
+  give the layouts of `print`, `FIXT` and `ABSFIXT`. Appendix B.1 of the
+  X1–X8 comparison translates an extract; its sections on input and
+  output are left out there.
 - The rest of van den Hove's thesis, held back for a book. On 23
   November 2026 the UvA record gave its files as under embargo until 15
   February 2027 (extended from 2025). Chapter III is an ISO C version of

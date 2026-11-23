@@ -100,7 +100,7 @@ fn property_4_zero_is_an_integer_and_large_whole_numbers_are_real() {
     assert_eq!(both("outinteger(1, 0.0 ÷ 1)").1, "0 ");
     assert!(both("outinteger(1, 0.0 ÷ 1)").0.contains("defined only for integers"));
     assert_eq!(both("outinteger(1, 67108863 ÷ 2)"), ("33554431 ".into(), "33554431 ".into()));
-    assert!(run(Dialect::X1, "outinteger(1, 67108864 ÷ 2)").contains("defined only for integers"));
+    assert!(run(Dialect::X1, "outinteger(1, 67108864 ÷ 2)").contains("X1 stop 1–8"));
 }
 
 #[test]
@@ -125,9 +125,11 @@ fn reals_are_stored_with_a_mantissa_of_40_bits() {
     let (r, x) = both("real x; x := 1 / 3; outreal(1, x - 1 / 3)");
     assert_eq!(r, "0 ");
     assert_ne!(x, "0 ");
-    // A real constant is stored like a variable, so 0.1 - 0.1 stored is 0
-    // (x1algol.pas, look_for_constant; the real compiler on x1sim agrees).
+    // A real constant is stored like a variable, so x - 0.1 is exactly 0
+    // (x1algol.pas, look_for_constant; the real compiler on x1sim agrees):
+    // on the X1 the stack's zero, which equals the integer 0.
     assert_eq!(run(Dialect::X1, "real x; x := 0.1; outreal(1, x - 0.1)"), "0 ");
+    assert_eq!(run(Dialect::X1, "real x; x := 0.1; outboolean(1, x - 0.1 = 0)"), "true ");
     // Exact in 40 bits: no difference.
     assert_eq!(run(Dialect::X1, "real x; x := 0.75; outreal(1, x - 0.75)"), "0 ");
 }
@@ -249,7 +251,47 @@ fn fixt_and_absfixt_follow_the_manual() {
 #[test]
 fn flot() {
     let p = "FLOT(13, -1⏨-111 / 7); FLOT(4, 9.9999); FLOT(1, 0)";
-    assert_eq!(run(Dialect::X1, p), "-.1428571428571⏨-111 +.1000⏨+  2 +.0⏨+  0 ");
+    assert_eq!(run(Dialect::X1, p), "-.1428571428571⏨-111 +.1000⏨+ 2 +.0⏨+ 0 ");
+}
+
+// ----- the arithmetic of the X1 user manual (complex ALD) -----
+
+#[test]
+fn a_real_variable_is_never_zero() {
+    // "As a consequence the relation 'a = 0' can never have the value
+    // true for variable a of type real."
+    let p = "real a; a := 0; outboolean(1, a = 0); outboolean(1, a > 0); outinteger(1, sign(a))";
+    assert_eq!(both(p), ("true false 0 ".into(), "false true 1 ".into()));
+    // E - E = 0 holds: the difference is the stack's zero, as is 0.
+    assert_eq!(run(Dialect::X1, "real a; a := 2.5; outboolean(1, a - a = 0)"), "true ");
+    // It prints as the X1's least real, 2^-2048.
+    assert_eq!(run(Dialect::X1, "real a; a := 0; print(a)"), "+.3094346047383⏨-616 ");
+    assert_eq!(run(Dialect::X1, "real a; a := -1⏨-300 × 1⏨-300; print(a)"), "-.3094346047383⏨-616 ");
+}
+
+#[test]
+fn a_real_beyond_the_range_is_kept_at_the_greatest() {
+    // Overflow on storing: the greatest magnitude with the sign; and 1/0
+    // is a quotient by the least positive number, not an error.
+    assert_eq!(run(Dialect::X1, "real a; a := 1 / 0; print(a)"), "+.1615850303564⏨+617 ");
+    assert_eq!(run(Dialect::X1, "real a; a := -1⏨300 × 1⏨300; print(a)"), "-.1615850303564⏨+617 ");
+    assert!(run(Dialect::Report, "real a; a := 1 / 0").contains("division by zero"));
+}
+
+#[test]
+fn an_integer_intermediate_beyond_capacity_is_real() {
+    // "An anonymous intermediate result that according to Algol 60 has to
+    // be of type integer but exceeds the integer capacity is transformed
+    // automatically to real representation."
+    let p = "integer i; real x; i := 67108863; x := i + 1; print(x); print(i × i)";
+    assert_eq!(run(Dialect::X1, p), "     +67108864       +.4503599493153⏨+ 16 ");
+    assert!(run(Dialect::X1, "integer i; i := 67108863; outinteger(1, (i + 1) ÷ 2)").contains("X1 stop 1–8"));
+}
+
+#[test]
+fn the_x1_flot_has_two_exponent_digits() {
+    // Appendix A of the X1–X8 comparison, note 3.
+    assert_eq!(run(Dialect::X1, "FLOT(5, 3.14159); FLOT(5, -0.000123)"), "+.31416⏨+ 1 -.12300⏨- 3 ");
 }
 
 #[test]

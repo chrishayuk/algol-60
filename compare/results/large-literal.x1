@@ -1,1 +1,1 @@
-compare/probes/large-literal.a60: line 2: '÷' is defined only for integers, but is given a real and an integer (3.3.4.2)
+compare/probes/large-literal.a60: line 2: X1 stop 1–8: the operands of ÷ are not both of type integer (a real and an integer)

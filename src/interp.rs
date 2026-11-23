@@ -12,6 +12,42 @@
 use crate::ast::{BOp, Spec, Type};
 use crate::compile::{Dialect, X1_MAXINT};
 use crate::builtins::Builtin;
+
+// The reals of the X1 (X1–X8 comparison, 3.2). A variable holds a 40-bit
+// mantissa and a 12-bit exponent, so its magnitude lies between 2^−2048
+// (about .3094⏨−616) and about .1616⏨+617; "the value 0 being replaced by
+// about 10^−600". On the stack the exponent has 27 bits, and there 0 is
+// "the smallest positive real number that can be represented as anonymous
+// number in the accumulator" (X1 user manual, in appendix B.1 of the same
+// report). f64 reaches neither, so three stand-ins are used, in the same
+// order of size: X1_REAL_MIN for the least variable, x1_zero() below it for
+// the stack's zero, and x1_real_max() for the greatest variable. FLOT and
+// print show the first and last with the X1's own digits.
+const X1_REAL_MIN: f64 = f64::MIN_POSITIVE;
+
+fn x1_zero() -> f64 {
+    f64::MIN_POSITIVE / 2f64.powi(40)
+}
+
+fn x1_real_max() -> f64 {
+    (2f64.powi(40) - 1.0) * 2f64.powi(1024 - 40)
+}
+
+/// A real stored in a variable of the X1: "rounded to 12 decimals" (40
+/// bits), and if "too large or too close to 0", the greatest or least
+/// magnitude "with the sign of the result to be assigned" (X1 user manual,
+/// complex ALD).
+fn x1_store(x: f64) -> f64 {
+    if x.abs() < X1_REAL_MIN {
+        return if x < 0.0 { -X1_REAL_MIN } else { X1_REAL_MIN };
+    }
+    let r = round_mantissa(x, 40);
+    if !r.is_finite() || r.abs() > x1_real_max() {
+        x.signum() * x1_real_max()
+    } else {
+        r
+    }
+}
 use crate::compile::*;
 use crate::value::*;
 use std::io::{BufRead, Write};
@@ -112,13 +148,23 @@ impl<'a> Interp<'a> {
         self.fail(format!("X1 stop {}: {}", number, msg))
     }
 
-    /// On the X1 every integer, intermediate results included, lies within
-    /// ±67108863 (section 3.2 of the X1–X8 comparison; stop 1–1).
+    /// An integer result. On the X1 one beyond ±67108863 "is transformed
+    /// automatically to real representation" (X1 user manual); the stop
+    /// 1–1 comes only when such a value is assigned to an integer.
     fn int(&self, n: i64) -> R<Value> {
         if self.x1() && n.abs() > X1_MAXINT {
-            return self.x1_stop("1–1", &format!("an integer value ({}) exceeds the integer capacity", n));
+            return Ok(Value::Real(n as f64));
         }
         Ok(Value::Int(n))
+    }
+
+    /// A value as stored in a variable: on the X1 a real is rounded to 40
+    /// bits and kept within the range of variables.
+    fn stored(&self, v: Value) -> Value {
+        match v {
+            Value::Real(x) if self.x1() => Value::Real(x1_store(x)),
+            v => v,
+        }
     }
 
     fn fail<T>(&self, msg: impl AsRef<str>) -> R<T> {
@@ -436,11 +482,11 @@ impl<'a> Interp<'a> {
             // A parameter called by value is a local variable, so on the
             // X1 a real one is stored with a 40-bit mantissa.
             let v = match v {
-                Value::Real(x) if self.x1() => Value::Real(round_mantissa(x, 40)),
+                Value::Real(x) if self.x1() => Value::Real(x1_store(x)),
                 Value::Array(a) if self.x1() && a.ty == Type::Real => {
                     for e in a.data.borrow_mut().iter_mut() {
                         if let Value::Real(x) = e {
-                            *x = round_mantissa(*x, 40);
+                            *x = x1_store(*x);
                         }
                     }
                     Value::Array(a)
@@ -583,24 +629,25 @@ impl<'a> Interp<'a> {
 
     fn store(&mut self, loc: &Loc, v: Value) -> R<()> {
         // A real variable of the X1 holds a mantissa of 40 bits, against 52
-        // on the stack (X1–X8 comparison, 3.2). Whether storing rounded or
-        // truncated is not said; rounding is assumed.
-        let v = match v {
-            Value::Real(x) if self.x1() => Value::Real(round_mantissa(x, 40)),
-            v => v,
-        };
+        // on the stack (X1–X8 comparison, 3.2), and the store rounds (X1
+        // user manual: "rounded to 12 decimals"). The conversion comes
+        // first, so that an integer 0 stored in a real is the X1's least
+        // real, and a real stored in an integer is rounded from the stack.
         match loc {
             Loc::Slot(f, s, conv) => {
                 let v = match conv {
                     Some(t) => self.convert(v, *t)?,
                     None => v,
                 };
-                f.slots.borrow_mut()[*s] = v;
+                f.slots.borrow_mut()[*s] = self.stored(v);
             }
-            Loc::Own(i, t) => self.owns[*i] = self.convert(v, *t)?,
+            Loc::Own(i, t) => {
+                let v = self.convert(v, *t)?;
+                self.owns[*i] = self.stored(v);
+            }
             Loc::Elem(a, i) => {
                 let v = self.convert(v, a.ty)?;
-                a.data.borrow_mut()[*i] = v;
+                a.data.borrow_mut()[*i] = self.stored(v);
             }
         }
         Ok(())
@@ -612,10 +659,13 @@ impl<'a> Interp<'a> {
             (v @ Value::Int(_), Type::Integer) | (v @ Value::Real(_), Type::Real) | (v @ Value::Bool(_), Type::Boolean) => {
                 Ok(v)
             }
-            (Value::Int(i), Type::Real) => Ok(Value::Real(i as f64)),
+            (Value::Int(i), Type::Real) => Ok(Value::Real(self.operand(&Value::Int(i))?)),
             (Value::Real(x), Type::Integer) => {
                 let n = self.round(x)?;
-                self.int(n)
+                if self.x1() && n.abs() > X1_MAXINT {
+                    return self.x1_stop("1–1", &format!("an integer value ({}) exceeds the integer capacity", n));
+                }
+                Ok(Value::Int(n))
             }
             (v, t) => self.fail(format!("{} cannot be assigned to a variable of type {}", v.kind(), t.name())),
         }
@@ -781,7 +831,31 @@ impl<'a> Interp<'a> {
         }
     }
 
+    /// An operand of an arithmetic operation or a relation. On the X1 the
+    /// integer 0 becomes, as a real, the least positive number of the stack
+    /// ("the transformation from integer to real is exact except for
+    /// integer 0", X1 user manual).
+    fn operand(&self, v: &Value) -> R<f64> {
+        match v {
+            Value::Int(0) if self.x1() => Ok(x1_zero()),
+            v => self.num(v),
+        }
+    }
+
+    /// A real result. On the X1 a result that would be exactly 0 is the
+    /// least positive number of the stack, as for "sum or difference of two
+    /// real numbers" in the X1 user manual. A result smaller still (0 / 2)
+    /// is kept at that magnitude, since the stack has nothing smaller
+    /// (assumed: the manual says only that results are "unambiguous"). And
+    /// since the stack's exponent has 27 bits, a result beyond f64 is taken
+    /// to the greatest real, which is what storing it would give.
     fn real(&self, x: f64) -> R<Value> {
+        if self.x1() && x.abs() <= x1_zero() {
+            return Ok(Value::Real(if x < 0.0 { -x1_zero() } else { x1_zero() }));
+        }
+        if self.x1() && x.is_infinite() {
+            return Ok(Value::Real(x.signum() * x1_real_max()));
+        }
         if x.is_finite() {
             Ok(Value::Real(x))
         } else {
@@ -813,7 +887,7 @@ impl<'a> Interp<'a> {
                 None => self.fail("integer overflow"),
             };
         }
-        let (a, b) = (self.num(&x)?, self.num(&y)?);
+        let (a, b) = (self.operand(&x)?, self.operand(&y)?);
         self.real(match op {
             BOp::Add => a + b,
             BOp::Sub => a - b,
@@ -826,7 +900,7 @@ impl<'a> Interp<'a> {
         match op {
             BOp::Add | BOp::Sub | BOp::Mul => self.arith(op, x, y),
             BOp::Div => {
-                let (a, b) = (self.num(&x)?, self.num(&y)?);
+                let (a, b) = (self.operand(&x)?, self.operand(&y)?);
                 if b == 0.0 {
                     return self.fail("division by zero");
                 }
@@ -838,6 +912,7 @@ impl<'a> Interp<'a> {
                     Some(n) => self.int(n),
                     None => self.fail("integer overflow"),
                 },
+                (x, y) if self.x1() => self.x1_stop("1–8", &format!("the operands of ÷ are not both of type integer ({} and {})", x.kind(), y.kind())),
                 (x, y) => self.fail(format!("'÷' is defined only for integers, but is given {} and {} (3.3.4.2)", x.kind(), y.kind())),
             },
             BOp::Pow => self.power(x, y),
@@ -847,7 +922,7 @@ impl<'a> Interp<'a> {
                     (Value::Bool(_), _) | (_, Value::Bool(_)) => {
                         return self.fail("relations compare arithmetic values; for Boolean values use ≡ (3.4.1)")
                     }
-                    _ => self.num(&x)?.partial_cmp(&self.num(&y)?),
+                    _ => self.operand(&x)?.partial_cmp(&self.operand(&y)?),
                 }
                 .unwrap();
                 use std::cmp::Ordering::*;
@@ -887,6 +962,7 @@ impl<'a> Interp<'a> {
                     }
                     match u32::try_from(j).ok().and_then(|j| i.checked_pow(j)) {
                         Some(r) => self.int(r),
+                        None if self.x1() => self.real((i as f64).powi(j as i32)),
                         None => self.fail("integer overflow in ↑"),
                     }
                 } else if i == 0 {
@@ -1101,6 +1177,7 @@ impl<'a> Interp<'a> {
             Outreal => {
                 self.arg_int(args, 0, env)?;
                 let x = self.arg_num(args, 1, env)?;
+                let x = if self.x1() && x.abs() == x1_zero() { 0.0 } else { x };
                 self.write(&format!("{} ", format_real(x)))?;
                 Value::Undef
             }
@@ -1178,7 +1255,10 @@ impl<'a> Interp<'a> {
             // sergev/x1-algol-compiler (doc/library-procedures.md). No
             // description of the X1's own survives in the sources found.
             Print => {
+                // How the X1 printed the stack's zero, whose exponent has
+                // millions of decimals, is not known; it is printed as 0.
                 let x = self.arg_num(args, 0, env)?;
+                let x = if self.x1() && x.abs() == x1_zero() { 0.0 } else { x };
                 let text = if x.fract() == 0.0 && x.abs() < 1_099_511_627_776.0 {
                     format!("{}      ", fixt(13, 0, x, true))
                 } else {
@@ -1254,10 +1334,11 @@ impl<'a> Interp<'a> {
             Flot => {
                 // The X1's FLOT has two parameters (Zonneveld's program in
                 // appendix B of Kruseman Aretz 2003 calls FLOT(12, x)); the
-                // X8's has three. Three exponent digits are assumed.
+                // X8's has three. The X1's exponent "was here fixed to two"
+                // decimals (X1–X8 comparison, appendix A, note 3).
                 let n = self.arg_int(args, 0, env)?;
                 let x = self.arg_num(args, 1, env)?;
-                self.write_item(&flot(n, 3, x))?;
+                self.write_item(&flot(n, 2, x))?;
                 Value::Undef
             }
             Fixt | Absfixt => {
@@ -1287,7 +1368,11 @@ fn flot(n: i64, m: i64, x: f64) -> String {
     }
     let (n, m) = (n as usize, m as usize);
     let (mut digits, mut e) = (String::new(), 0i32);
-    if x != 0.0 {
+    if x.abs() == X1_REAL_MIN || x.abs() == x1_real_max() {
+        // The X1's least and greatest reals, 2^−2048 and (1 − 2^−40) × 2^2047.
+        let (d, ex) = if x.abs() == X1_REAL_MIN { ("30943460473825782754", -616) } else { ("16158503035640807577", 617) };
+        (digits, e) = round_digits(d, n, ex);
+    } else if x != 0.0 && x.abs() != x1_zero() {
         // x = 0.d1d2... × 10^e, rounded to n digits.
         let s = format!("{:.*e}", n - 1, x.abs());
         let (mant, exp) = s.split_once('e').unwrap();
@@ -1309,6 +1394,26 @@ fn flot(n: i64, m: i64, x: f64) -> String {
         ee,
         width = m
     )
+}
+
+/// The first n of the decimal digits d of 0.d × 10^e, rounded.
+fn round_digits(d: &str, n: usize, e: i32) -> (String, i32) {
+    let mut v: Vec<u8> = d.bytes().map(|b| b - b'0').collect();
+    let up = v[n] >= 5;
+    v.truncate(n);
+    if up {
+        let mut i = n;
+        loop {
+            if i == 0 {
+                v.insert(0, 1);
+                v.truncate(n);
+                return (v.iter().map(|d| (d + b'0') as char).collect(), e + 1);
+            }
+            i -= 1;
+            if v[i] == 9 { v[i] = 0 } else { v[i] += 1; break }
+        }
+    }
+    (v.iter().map(|d| (d + b'0') as char).collect(), e)
 }
 
 /// ABSFIXT(n, m, x) (X8 manual, 7.3.1.8): a space, |x| with n digits

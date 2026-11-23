@@ -1,0 +1,4 @@
+b̲e̲g̲i̲n̲ i̲n̲t̲e̲g̲e̲r̲ i; r̲e̲a̲l̲ x;
+  i := 67108863; x := i + 1; print(x); print(i + i); NLCR;
+  i := i + 1; print(i); NLCR
+e̲n̲d̲

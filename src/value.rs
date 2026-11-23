@@ -116,7 +116,10 @@ pub fn round_mantissa(x: f64, bits: i32) -> f64 {
         return x;
     }
     let e = x.abs().log2().floor() as i32 + 1;
-    let scale = 2f64.powi(bits - e);
-    (x * scale).round() / scale
+    // The scale 2^(bits − e) is applied in two halves, so that it stays
+    // finite for x near the smallest normal number.
+    let k = bits - e;
+    let (s1, s2) = (2f64.powi(k / 2), 2f64.powi(k - k / 2));
+    (x * s1 * s2).round() / s1 / s2
 }
 

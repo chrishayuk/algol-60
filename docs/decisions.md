@@ -100,6 +100,18 @@ Answered by descriptions of the run-time complex:
   the initial value, or adds the step to V and stores it, before FOR7
   tests [KA-X1X8, 3.3.3].
 
+Answered by the extract of the X1 user manual in [KA-X1X8, appendix
+B.1], which `docs/x1.md` cites as [X1-man]:
+
+- A real result stored in a variable is rounded ("rounded to 12
+  decimals"), not truncated.
+- A real is never 0: the integer 0 as a real, and an exact zero sum or
+  difference, are the least positive number, so `a = 0` is false for a
+  real variable. Overflow and underflow on storing give the greatest and
+  least magnitudes, not an error.
+- An integer intermediate result beyond the integer capacity becomes
+  real.
+
 Still open:
 
 - How the X1 rounds a real exactly halfway between two integers. `--x1`
@@ -107,4 +119,4 @@ Still open:
   away from zero (−3). The X8, the X1's successor, rounded half away from
   zero in hardware [KA-X1X8, 4.1], which favours x1sim but is not
   evidence about the X1's software routine.
-- How a real result is rounded to 40 bits when it is stored.
+- How the X1 printed the stack's zero, and what a result below it is.
