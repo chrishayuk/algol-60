@@ -1,0 +1,6 @@
+warning: line 1: the X1 manual forbids this (property 19): x1 has no specification; every formal parameter needs one; its compiler did not check, and what followed is not known
+warning: line 1: the X1 manual forbids this (property 19): x2 has no specification; every formal parameter needs one; its compiler did not check, and what followed is not known
+warning: line 1: the X1 manual forbids this (property 19): x3 has no specification; every formal parameter needs one; its compiler did not check, and what followed is not known
+warning: line 1: the X1 manual forbids this (property 19): x4 has no specification; every formal parameter needs one; its compiler did not check, and what followed is not known
+warning: line 1: the X1 manual forbids this (property 19): x5 has no specification; every formal parameter needs one; its compiler did not check, and what followed is not known
+           -67       

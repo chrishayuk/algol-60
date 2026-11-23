@@ -1,0 +1,6 @@
+b̲e̲g̲i̲n̲ i̲n̲t̲e̲g̲e̲r̲ i; i̲n̲t̲e̲g̲e̲r̲ a̲r̲r̲a̲y̲ a[1:2];
+  i̲n̲t̲e̲g̲e̲r̲ p̲r̲o̲c̲e̲d̲u̲r̲e̲ bump; b̲e̲g̲i̲n̲ i := i + 1; bump := 10 × i e̲n̲d̲;
+  a[1] := 0; a[2] := 0; i := 1;
+  a[i] := bump;
+  print(a[1]); print(a[2]); NLCR
+e̲n̲d̲

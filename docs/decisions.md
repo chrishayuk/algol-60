@@ -80,9 +80,19 @@ Answered from the documents (see [`x1.md`](x1.md)):
   (property 17), so the question of changing bounds does not arise.
 - The X1 evaluates primaries left to right (property 7), as here.
 
-Still open, needing the run-time complex:
+Answered by the real compiler on x1sim (see
+[`compare/README.md`](../compare/README.md)):
 
-- Does it round or truncate when a real is assigned to an integer, and
-  when a real is stored?
-- Does it evaluate both operands of `∧` and `∨`?
+- Both operands of `∧` and `∨` are evaluated.
+- In an assignment the left part subscripts are evaluated before the
+  expression, as the Report says (4.2.3), and primaries and subscripts
+  left to right.
+- Real constants are stored in 40 bits, like variables.
+
+Still open, needing the run-time complex (x1sim's answers are a
+reconstruction, not evidence):
+
+- Does it round or truncate when a real is assigned to an integer
+  (x1sim rounds −2.5 to −3, `--x1` to −2), and when a real is stored?
 - What is the value of the controlled variable after a for statement?
+  (11 for `1 step 1 until 10` in both reconstructions.)

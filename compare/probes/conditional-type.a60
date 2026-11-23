@@ -1,0 +1,5 @@
+b̲e̲g̲i̲n̲ r̲e̲a̲l̲ x; i̲n̲t̲e̲g̲e̲r̲ i; B̲o̲o̲l̲e̲a̲n̲ b;
+  b := t̲r̲u̲e̲; i := 3;
+  x := (i̲f̲ b t̲h̲e̲n̲ i e̲l̲s̲e̲ 2.5) / 2;
+  print(x); print(i / 2); NLCR
+e̲n̲d̲

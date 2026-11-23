@@ -1,0 +1,5 @@
+b̲e̲g̲i̲n̲ i̲n̲t̲e̲g̲e̲r̲ n; i̲n̲t̲e̲g̲e̲r̲ a̲r̲r̲a̲y̲ a[1:3, 1:3];
+  i̲n̲t̲e̲g̲e̲r̲ p̲r̲o̲c̲e̲d̲u̲r̲e̲ f(k); v̲a̲l̲u̲e̲ k; i̲n̲t̲e̲g̲e̲r̲ k; b̲e̲g̲i̲n̲ n := 10 × n + k; f := k e̲n̲d̲;
+  n := 0; a[1, 2] := 7;
+  print(a[f(1), f(2)]); print(n); NLCR
+e̲n̲d̲

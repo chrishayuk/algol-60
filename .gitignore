@@ -5,3 +5,5 @@ sources/*/
 # object programs left by x1sim
 compare/obj/
 *.x1
+# but keep the --x1 column of the comparison
+!compare/results/*.x1

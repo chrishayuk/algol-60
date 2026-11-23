@@ -1,0 +1,7 @@
+b̲e̲g̲i̲n̲ i̲n̲t̲e̲g̲e̲r̲ i; s̲w̲i̲t̲c̲h̲ s := l1, i̲f̲ i = 1 t̲h̲e̲n̲ l2 e̲l̲s̲e̲ l3;
+  i := 1; g̲o̲t̲o̲ s[2];
+l1: print(1); g̲o̲t̲o̲ done;
+l2: print(2); g̲o̲t̲o̲ done;
+l3: print(3);
+done: NLCR
+e̲n̲d̲

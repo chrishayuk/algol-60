@@ -1,0 +1,1 @@
+compare/probes/numeric-label.a60: line 4: the X1 system does not accept labels beginning with a digit (property 8 of its manual; its compiler fails on them)

@@ -1,0 +1,2 @@
+warning: line 3: 'if' after 'then' is not allowed by the Report (4.5.1); the X1 compiler accepted it, and here 'else' goes with the nearest 'if'
+b

@@ -40,6 +40,15 @@ columns are two independent reconstructions from the same documents.
 | `numeric-label` | refused | compiler fails | compiler | `10:` makes the compiler stop with a fatal error (property 8). `--x1` now refuses it |
 | `store-40-bits` | 0 | 0 | compiler | `x := 0.1; x - 0.1` is 0, because the compiler stores the constant 0.1 in the same 40-bit form as a variable (`look_for_constant` in x1algol.pas). `--x1` was corrected to match |
 | `boolean-both-operands` | 2 | 2 | compiler | Both operands of `∧` and `∨` are evaluated |
+| `primary-order` | 123 −5 | 123 −5 | compiler | `f(1) − f(2) × f(3)` calls f in the order written, not the order of the operators (property 7). Confirmed |
+| `variable-then-call` | 2 | 2 | compiler | In `x + g`, where g sets x to 100, x is fetched before g is called |
+| `subscript-order` | 7 12 | 7 12 | compiler | Subscripts evaluated left to right |
+| `assign-subscript-first` | 20 0 | 20 0 | compiler | `a[i] := bump`, where bump changes i: the subscript is evaluated before the expression (Report 4.2.3) |
+| `assign-multiple` | 2 0 2 | 2 0 2 | compiler | `a[i] := i := 2` with i = 1 assigns a[1], the left part subscripts first (Report 4.2.3) |
+| `unary-minus` | −4 −5 6 −6 | −4 −5 6 −6 | compiler | `−a↑2` is −(a↑2); `a − b − c` and `c / a × b` go left to right |
+| `switch-late` | 2 | 2 | both | A conditional entry of a switch is evaluated at the `go to`, not at the declaration |
+| `name-reevaluated` | 40 | 40 | both | A name parameter `a[i]` is evaluated again each time it is used, with the i of that moment |
+| `conditional-type` | 1.5 1.5 | 1.5 1.5 | both | `(if b then i else 2.5) / 2` with i = 3; `/` of two integers gives a real |
 | `for-step-count` | 11 11 | 11 11 | both | The step evaluated once per time round (property 11) |
 | `for-step-first` | 7 | 7 | both | The step evaluated before the initial value is assigned (property 11) |
 | `for-variable-after` | 11 | 11 | run-time | The controlled variable after the loop |

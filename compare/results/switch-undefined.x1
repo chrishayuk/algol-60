@@ -1,0 +1,1 @@
+compare/probes/switch-undefined.a60: line 2: go to an undefined switch designator: a dummy statement by the Report (4.3.5), undefined on the X1 (property 10)
