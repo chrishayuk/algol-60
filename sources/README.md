@@ -24,6 +24,11 @@ them into the directories named to check a reading. All were fetched on
   describes in [KA03, 1.6].
 - The X1 user manual itself, which would give the layouts of `print`,
   `FLOT`, `FIXT` and `ABSFIXT`.
-- The rest of van den Hove's thesis, held back for a book. A full copy
-  at core.ac.uk sits behind a bot check and was not fetched; the author's
-  page http://www.fibonacci.org/GHE3 did not answer.
+- The rest of van den Hove's thesis, held back for a book. On 23
+  November 2026 the UvA record gave its files as under embargo until 15
+  February 2027 (extended from 2025). Chapter III is an ISO C version of
+  the whole system, reverse engineered from the X1 assembler source
+  (about 3000 lines, 173 subroutines), and would settle the two questions
+  still open in `docs/decisions.md`. A copy listed at core.ac.uk was not
+  fetched, because of the embargo; the author's page
+  http://www.fibonacci.org/GHE3 did not answer.
