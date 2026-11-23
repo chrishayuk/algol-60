@@ -1,0 +1,19 @@
+[package]
+name = "algol60"
+version = "0.1.0"
+edition = "2021"
+license = "Apache-2.0"
+description = "ALGOL 60, implemented from the Revised Report of 1962, with call by name as the Report describes it"
+
+[lib]
+name = "algol60"
+path = "src/lib.rs"
+
+[[bin]]
+name = "algol60"
+path = "src/main.rs"
+
+[dependencies]
+
+[profile.release]
+opt-level = 3

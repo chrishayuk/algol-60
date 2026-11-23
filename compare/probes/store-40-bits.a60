@@ -1,0 +1,4 @@
+b̲e̲g̲i̲n̲ r̲e̲a̲l̲ x;
+  x := 0.1;
+  print(x - 0.1); NLCR
+e̲n̲d̲

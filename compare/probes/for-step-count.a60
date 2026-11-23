@@ -1,0 +1,7 @@
+b̲e̲g̲i̲n̲ i̲n̲t̲e̲g̲e̲r̲ nb, nc, i;
+  i̲n̲t̲e̲g̲e̲r̲ p̲r̲o̲c̲e̲d̲u̲r̲e̲ b; b̲e̲g̲i̲n̲ nb := nb + 1; b := 1 e̲n̲d̲;
+  i̲n̲t̲e̲g̲e̲r̲ p̲r̲o̲c̲e̲d̲u̲r̲e̲ c; b̲e̲g̲i̲n̲ nc := nc + 1; c := 10 e̲n̲d̲;
+  nb := 0; nc := 0;
+  f̲o̲r̲ i := 1 s̲t̲e̲p̲ b u̲n̲t̲i̲l̲ c d̲o̲ ;
+  print(nb); print(nc); NLCR
+e̲n̲d̲

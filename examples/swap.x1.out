@@ -1,0 +1,5 @@
+i = 1  a =5 0 0 0 0 
+after swap(a[i], i):
+i = 5  a =1 0 0 0 0 
+after swap(i, a[i]):
+i = 5  a =5 0 0 0 1 

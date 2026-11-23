@@ -1,0 +1,1 @@
+compare/probes/then-if.a60: line 3, column 23: after 'then' a conditional statement must be enclosed in begin ... end (4.5.1) (found 'if')

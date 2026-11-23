@@ -1,0 +1,7 @@
+body ran 10 
+A evaluated 1 
+B evaluated 11 
+C evaluated 11 
+with the limit raised from 3 to 5, the body ran 5 
+1, i + i while i < 100: 7  times, i = 128 
+twice(next) = 3  (next was called 2 times)

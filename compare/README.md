@@ -1,0 +1,77 @@
+# Three runs of the same programs
+
+Each program in `probes/` asks one question about the X1 system. `run.sh`
+runs it three ways and keeps the output in `results/`:
+
+- `.report` — `algol60`, the Revised Report. These programs use the X1's
+  `print`, `PRINTTEXT` and `NLCR`, which the Report does not have, so this
+  column is all errors; it is kept so that the script is the same for any
+  program.
+- `.x1` — `algol60 --x1`, the X1 as the documents describe it
+  (`docs/x1.md`).
+- `.x1sim` — the real 1964 compiler (Kruseman Aretz's Pascal version, in
+  Serge Vakulenko's C translation) and Vakulenko's simulator of the X1,
+  from https://github.com/sergev/x1-algol-compiler, built in
+  `sources/sergev-x1/build`.
+
+The probes are written with underlined word delimiters (`underline.py`
+makes them from plain text) and `` ` ' `` string quotes, which both
+programs read.
+
+## Which half answers the question
+
+The X1 system had two halves. The **compiler** survives, and x1sim runs
+it. The **run-time complex** (the routines the object code calls for
+arithmetic, for statements, procedure calls, input and output) was never
+published; x1sim's is Vakulenko's reconstruction, as `--x1` is this
+project's. So where a result is decided by the compiler, x1sim is
+evidence about the real X1. Where it is decided by the run-time, the two
+columns are two independent reconstructions from the same documents.
+
+## Results (23 November 2026)
+
+| Probe | `--x1` | x1sim | Decided by | Reading |
+| --- | --- | --- | --- | --- |
+| `value-order` | 2 1 | 2 1 | compiler | Value parameters in the order of specification (property 22). Confirmed |
+| `nine-symbols` | 0 | 0 | compiler | Nine symbols of an identifier count (property 3). Confirmed |
+| `then-if` | b | b | compiler | `then if` accepted, `else` with the nearest `if`. Confirmed |
+| `declaration-order` | p 3 | p3 | compiler | A procedure before a variable compiles and works, against property 15: the manual's rules were not the compiler's checks. Confirmed |
+| `man-or-boy-unspecified` | −67 | −67 | compiler | Knuth's program as printed, with `x1` … `x5` unspecified against property 19, compiles and gives −67 |
+| `numeric-label` | refused | compiler fails | compiler | `10:` makes the compiler stop with a fatal error (property 8). `--x1` now refuses it |
+| `store-40-bits` | 0 | 0 | compiler | `x := 0.1; x - 0.1` is 0, because the compiler stores the constant 0.1 in the same 40-bit form as a variable (`look_for_constant` in x1algol.pas). `--x1` was corrected to match |
+| `boolean-both-operands` | 2 | 2 | compiler | Both operands of `∧` and `∨` are evaluated |
+| `for-step-count` | 11 11 | 11 11 | both | The step evaluated once per time round (property 11) |
+| `for-step-first` | 7 | 7 | both | The step evaluated before the initial value is assigned (property 11) |
+| `for-variable-after` | 11 | 11 | run-time | The controlled variable after the loop |
+| `function-type` | 1.5 | 1.5 | run-time | An `integer procedure` can give 1.5 (property 18) |
+| `harmonic` | 5.187377517635 | 5.187377517635 | run-time | The sum of 1/n to 100 with 40-bit stores |
+| `own-recursive` | 4 | 4 | run-time | One `own` variable shared by all activations |
+| `zero-is-integer` | 0 | 0 | both | `0.0 ÷ 1` is allowed: zero is an integer (property 4) |
+| `integer-power` | 64, 0.5 | 64, 0.5 | run-time | `2↑3↑2` and `2↑(−1)` |
+| `division-truncates` | −3 −3 | −3 −3 | run-time | `÷` truncates towards zero |
+| `integer-overflow` | stop 1–1 | error | run-time | 67108863 + 1 overflows |
+| `large-literal` | error | error | both | 67108864 is real, so `÷` refuses it (property 4) |
+| `empty-array` | stop 1–2 | error | run-time | Upper bound below lower |
+| `abs-type` | 3 | error | run-time | **Disagree.** Property 6 says `abs` has the type of its argument; x1sim's `abs` gives a real |
+| `sqrt-negative` | 2 | error | run-time | **Disagree.** Property 6 says `sqrt` takes the absolute value; x1sim's refuses |
+| `round-to-integer` | 3 −2 2 | 3 −3 2 | run-time | **Disagree.** −2.5 to an integer: `--x1` uses the Report's `entier(x + 0.5)`, x1sim rounds half away from zero. No source says what the X1's complex did |
+| `switch-undefined` | error | jumps to `a` | run-time | Undefined (property 10); x1sim shows one thing it may do |
+
+In the first two disagreements the manual is on the side of `--x1`. The
+third is open.
+
+## Zonneveld's outer planets
+
+`historical/jaz164.alg` (appendix B of Kruseman Aretz 2003, from the PDF's
+text), with the input data of Vakulenko's repository, through the real
+compiler on x1sim: all 88 numbers printed are the same as those of
+`algol60 --x1`. Before `--x1` stored real constants in 40 bits, one of
+them differed in the ninth decimal.
+
+To run it on x1sim:
+
+    PATH=sources/sergev-x1/build/compiler:$PATH \
+    X1ALGOL_LIB=sources/sergev-x1/library/x1algol.lib \
+    sources/sergev-x1/build/simulator/x1sim historical/jaz164.alg < historical/jaz164.in
+
+(x1sim wants the extension `.a60`; copy the file first.)

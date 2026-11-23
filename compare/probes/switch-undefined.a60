@@ -1,0 +1,5 @@
+b̲e̲g̲i̲n̲ s̲w̲i̲t̲c̲h̲ s := a;
+  g̲o̲t̲o̲ s[2];
+  PRINTTEXT(`fell through'); NLCR;
+a: PRINTTEXT(`end'); NLCR
+e̲n̲d̲

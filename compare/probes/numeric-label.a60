@@ -1,0 +1,5 @@
+b̲e̲g̲i̲n̲
+  g̲o̲t̲o̲ 10;
+  PRINTTEXT(`skipped');
+10: PRINTTEXT(`at 10'); NLCR
+e̲n̲d̲

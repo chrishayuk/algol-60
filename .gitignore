@@ -1,0 +1,7 @@
+target
+.DS_Store
+# the documents and their text: see sources/README.md
+sources/*/
+# object programs left by x1sim
+compare/obj/
+*.x1
