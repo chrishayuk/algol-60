@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ALGOL 60 playground</title>
+<style>
+  :root { --bg: #f2f0eb; --fg: #0b0b0b; --rule: #b8b6b1; --accent: #1f5f8b; --err: #a3432f; --diff: #e8c95a55; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #0b0b0b; --fg: #fafaf8; --diff: #8a6d1f66; } }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, sans-serif; }
+  main { max-width: 1200px; margin: 0 auto; padding: 32px 16px 64px; }
+  h1 { font: 500 2.2rem/1.1 Georgia, serif; margin: 0 0 8px; }
+  p { max-width: 70ch; opacity: .8; margin: 0 0 24px; }
+  a { color: var(--accent); }
+  .bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 12px; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  label { display: block; font: 12px ui-monospace, monospace; letter-spacing: .08em; text-transform: uppercase; opacity: .6; margin: 12px 0 4px; }
+  textarea, pre, select, button { font: 14px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; color: inherit; }
+  textarea, pre { width: 100%; margin: 0; padding: 12px; background: transparent; border: 1px solid var(--rule); border-radius: 0; }
+  textarea { resize: vertical; tab-size: 2; }
+  #program { height: 360px; }
+  #input { height: 56px; }
+  pre { height: 300px; overflow: auto; white-space: pre; }
+  pre .diff { background: var(--diff); }
+  pre .warn { opacity: .6; font-style: italic; }
+  select, button { padding: 6px 12px; background: transparent; border: 1px solid var(--fg); cursor: pointer; }
+  button.primary { background: var(--fg); color: var(--bg); }
+  button:disabled { opacity: .35; cursor: default; }
+  .err { color: var(--err); }
+  #status { font: 12px ui-monospace, monospace; opacity: .6; }
+</style>
+</head>
+<body>
+<main>
+  <h1>ALGOL 60</h1>
+  <p>The language of the 1962 Revised Report, with call by name done by the Report's copy rule. Each program
+     runs twice: as the Report defines it, and as the first implementation, Dijkstra and Zonneveld's system for
+     the Electrologica X1 (1960), ran it, from that system's documents. Lines that differ are marked. This is the
+     same Rust program as the command line, compiled to WebAssembly and running in your browser.
+     <a href="https://github.com/chrishayuk/algol-60">Source and documents</a>.</p>
+  <div class="bar">
+    <select id="examples" aria-label="Example programs"></select>
+    <button id="run" class="primary">Run both</button>
+    <button id="stop" disabled>Stop</button>
+    <span id="status"></span>
+  </div>
+  <label for="program">Program</label>
+  <textarea id="program" spellcheck="false" wrap="off"></textarea>
+  <label for="input">Input, for inreal, ininteger and inchar</label>
+  <textarea id="input" spellcheck="false"></textarea>
+  <div class="grid">
+    <div><label>The Revised Report</label><pre id="report" aria-live="polite"></pre></div>
+    <div><label>The X1, 1960 (--x1)</label><pre id="x1" aria-live="polite"></pre></div>
+  </div>
+  <div id="printed" hidden><label>Printed by the X1 in 1964 (Zonneveld's thesis, MC Tract 8)</label><pre id="printed1964"></pre></div>
+</main>
+<script type="module">
+import { runOnPage } from "./wasi.js";
+const $ = (id) => document.getElementById(id);
+const examples = await (await fetch("examples.json")).json();
+for (const [i, e] of examples.entries()) $("examples").add(new Option(e.name, i));
+
+function choose(i) {
+  const e = examples[i];
+  $("program").value = e.program;
+  $("input").value = e.input;
+  $("report").textContent = $("x1").textContent = "";
+  $("printed").hidden = !e.printed1964;
+  $("printed1964").textContent = e.printed1964 || "";
+}
+$("examples").onchange = () => choose($("examples").value);
+choose(0);
+
+let workers = [];
+function stop(message) {
+  for (const w of workers) w.terminate();
+  workers = [];
+  $("run").disabled = false;
+  $("stop").disabled = true;
+  if (message) $("status").textContent = message;
+}
+$("stop").onclick = () => stop("stopped");
+
+const TOO_DEEP = "nested too deeply for the browser";
+const ending = (out, message) => out + (out && !out.endsWith("\n") ? "\n" : "") + "! " + message + "\n";
+
+// What a run printed, with the X1's warnings first and an error, if the
+// program stopped with one, last after "! ".
+function transcript(out, err) {
+  const lines = err.split("\n").map((l) => l.replace(/^-e: /, "")).filter(Boolean);
+  const warnings = lines.filter((l) => l.startsWith("warning:"));
+  const errors = lines.filter((l) => !l.startsWith("warning:"));
+  const head = warnings.length ? warnings.join("\n") + "\n\n" : "";
+  return head + (errors.length ? ending(out, errors.join("\n")) : out);
+}
+
+// In a worker first, so that a program that never ends can be stopped;
+// on the page if the worker's stack is too small for it.
+async function once(mode) {
+  const out = await inWorker(mode);
+  if (!out.includes(TOO_DEEP)) return out;
+  const { out: text, err } = await runOnPage("algol60.wasm", $("program").value, $("input").value, mode);
+  return transcript(text, err);
+}
+
+function inWorker(mode) {
+  return new Promise((resolve) => {
+    const w = new Worker("worker.js", { type: "module" });
+    workers.push(w);
+    let out = "";
+    let err = "";
+    w.onmessage = ({ data }) => {
+      if (data.type === "out" && data.fd === 2) err += data.text;
+      else if (data.type === "out") out += data.text;
+      else if (data.type === "done") resolve(transcript(out, err));
+      else if (data.type === "error") resolve(transcript(out, err + "\n" + data.message));
+    };
+    w.postMessage({ wasmUrl: "algol60.wasm", program: $("program").value, input: $("input").value, mode });
+  });
+}
+
+// Splits a transcript into its warnings and what the program printed.
+function parts(text) {
+  const lines = text.split("\n");
+  let i = 0;
+  while (lines[i]?.startsWith("warning:")) i++;
+  return i ? [lines.slice(0, i), lines.slice(i + 1)] : [[], lines];
+}
+
+// Marks each printed line that differs from the other column's.
+function show(pre, text, other) {
+  pre.replaceChildren();
+  const [warnings, lines] = parts(text);
+  const theirs = parts(other)[1];
+  for (const w of warnings) {
+    const span = document.createElement("span");
+    span.className = "warn";
+    span.textContent = w + "\n";
+    pre.append(span);
+  }
+  if (warnings.length) pre.append("\n");
+  for (const [i, line] of lines.entries()) {
+    const span = document.createElement("span");
+    if (line !== theirs[i]) span.className = "diff";
+    span.textContent = line + "\n";
+    pre.append(span);
+  }
+}
+
+$("run").onclick = async () => {
+  stop();
+  $("run").disabled = true;
+  $("stop").disabled = false;
+  $("status").textContent = "running";
+  const t = performance.now();
+  const [report, x1] = await Promise.all([once("report"), once("x1")]);
+  show($("report"), report, x1);
+  show($("x1"), x1, report);
+  stop(`${Math.round(performance.now() - t)} ms`);
+};
+</script>
+</body>
+</html>

@@ -107,6 +107,27 @@ runs every program in `examples/` against its `.out` file
 Report's rules one at a time with programs small enough to work out by
 hand.
 
+## In the browser
+
+`web/` is a playground that runs each program twice, as the Report
+defines it and as the X1 ran it, side by side, with the lines that differ
+marked. It is the same interpreter compiled to WebAssembly for WASI.
+`web/wasi.js` is a small host that supplies the program, standard input and
+output, so the page needs no other library.
+
+```bash
+node web/build.mjs                  # builds web/algol60.wasm and web/examples.json
+node web/test.mjs                   # runs every example in it, both ways, against the .out files
+python3 -m http.server -d web       # then open http://localhost:8000
+```
+
+WASI has no threads, so in the browser the interpreter cannot have the
+4 GB stack it starts itself with natively. It runs on a 64 MB stack, set
+in `.cargo/config.toml`. The browser's own stack is the tighter limit.
+Chrome's page runs man or boy to k = 10 and its workers only to k = 9, so a
+program a worker finds too deep is run again on the page, with a limit on
+its steps.
+
 ## The X1 dialect
 
 `algol60 --x1` runs a program as the Dijkstra–Zonneveld system for the

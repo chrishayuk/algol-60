@@ -1,0 +1,5 @@
+# The interpreter recurses on the stack (man or boy needs a deep one). On
+# WASI it cannot start a thread with a bigger stack, so the linker is asked
+# for 64 MB; src/interp.rs stops a program at 56 MB.
+[target.wasm32-wasip1]
+rustflags = ["-C", "link-arg=-zstack-size=67108864"]

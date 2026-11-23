@@ -40,16 +40,22 @@ pub fn run(
     options: Options,
 ) -> Result<(), String> {
     let Options { max_steps, dialect } = options;
+    let mut go = move || {
+        let prog = compile::compile(src, dialect)?;
+        for w in &prog.warnings {
+            let _ = writeln!(warn, "warning: {}", w);
+        }
+        interp::Interp::new(&prog, out, input, max_steps).run()
+    };
+    // WASI has no threads: the program runs on the main stack, which
+    // .cargo/config.toml makes 64 MB.
+    if cfg!(target_family = "wasm") {
+        return go();
+    }
     std::thread::scope(|s| {
         std::thread::Builder::new()
             .stack_size(STACK)
-            .spawn_scoped(s, move || {
-                let prog = compile::compile(src, dialect)?;
-                for w in &prog.warnings {
-                    let _ = writeln!(warn, "warning: {}", w);
-                }
-                interp::Interp::new(&prog, out, input, max_steps).run()
-            })
+            .spawn_scoped(s, go)
             .expect("cannot start the interpreter thread")
             .join()
             .unwrap_or_else(|_| Err("the interpreter failed".into()))

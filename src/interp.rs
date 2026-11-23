@@ -69,8 +69,12 @@ enum Loc {
 
 /// How much of the stack the interpreter may use before it stops a program
 /// with an error rather than overflow. The thread is started with more
-/// than this (see lib.rs).
+/// than this (see lib.rs). On WebAssembly there are no threads, and the
+/// stack is the 64 MB the linker is asked for in .cargo/config.toml.
+#[cfg(not(target_family = "wasm"))]
 pub const STACK_BUDGET: usize = 3 << 30;
+#[cfg(target_family = "wasm")]
+pub const STACK_BUDGET: usize = 56 << 20;
 
 fn stack_address() -> usize {
     let x = 0u8;
@@ -167,6 +171,8 @@ impl<'a> Interp<'a> {
         }
     }
 
+    #[cold]
+    #[inline(never)]
     fn fail<T>(&self, msg: impl AsRef<str>) -> R<T> {
         Err(Signal::Error(format!("line {}: {}", self.line, msg.as_ref())))
     }
@@ -179,8 +185,8 @@ impl<'a> Interp<'a> {
     fn check_stack(&self) -> R<()> {
         if self.stack_base.abs_diff(stack_address()) > STACK_BUDGET {
             return self.fail(format!(
-                "procedures nested too deep: the {} GB of stack is used up",
-                STACK_BUDGET >> 30
+                "procedures nested too deep: the {} MB of stack is used up",
+                STACK_BUDGET >> 20
             ));
         }
         Ok(())
@@ -196,8 +202,20 @@ impl<'a> Interp<'a> {
 
     // ----- statements -----
 
+    #[inline(always)]
     fn block(&mut self, b: &'a BlockCode, env: &Rc<Frame>) -> R<()> {
         let f = self.frame(Some(env.clone()), b.nslots);
+        if !b.inits.is_empty() {
+            self.declare(b, &f)?;
+        }
+        self.exec_code(&b.body, &f)
+    }
+
+    /// The declarations of a block: simple variables and arrays. Kept out
+    /// of block() so that the frames of a deep recursion stay small (the
+    /// browser's stack is about 1 MB).
+    #[inline(never)]
+    fn declare(&mut self, b: &'a BlockCode, f: &Rc<Frame>) -> R<()> {
         for init in &b.inits {
             match init {
                 Init::Simple { slot, ty } => f.slots.borrow_mut()[*slot as usize] = Value::zero(*ty),
@@ -210,9 +228,9 @@ impl<'a> Interp<'a> {
                     let mut bs = Vec::new();
                     let mut size: usize = 1;
                     for (lo, hi) in bounds.iter() {
-                        let l = self.eval(lo, &f)?;
+                        let l = self.eval(lo, f)?;
                         let l = self.to_int(l)?;
-                        let h = self.eval(hi, &f)?;
+                        let h = self.eval(hi, f)?;
                         let h = self.to_int(h)?;
                         if h < l && self.x1() {
                             return self.x1_stop(
@@ -235,7 +253,7 @@ impl<'a> Interp<'a> {
                 }
             }
         }
-        self.exec_code(&b.body, &f)
+        Ok(())
     }
 
     fn exec_code(&mut self, code: &'a Code, env: &Rc<Frame>) -> R<()> {
@@ -257,7 +275,39 @@ impl<'a> Interp<'a> {
         Ok(())
     }
 
+    /// A left part list of more than one variable (4.2.3).
+    #[inline(always)]
+    fn assign_many(&mut self, targets: &[Target], e: &Ex, env: &Rc<Frame>) -> R<()> {
+        let mut locs = Vec::with_capacity(targets.len());
+        for t in targets {
+            locs.push(self.locate(t, env)?);
+        }
+        let v = self.eval(e, env)?;
+        for loc in &locs {
+            self.store(loc, v.clone())?;
+        }
+        Ok(())
+    }
+
+    #[inline(never)]
+    fn goto(&mut self, e: &Ex, env: &Rc<Frame>) -> R<Option<usize>> {
+        // A switch designator whose value is undefined makes the go
+        // to statement a dummy statement (4.3.5).
+        match self.desig(e, env)? {
+            Some(l) => return Err(Signal::Goto(l)),
+            // On the X1 it is undefined instead (property 10).
+            None if self.x1() => {
+                return self.fail(
+                    "go to an undefined switch designator: a dummy statement by the Report (4.3.5), undefined on the X1 (property 10)",
+                )
+            }
+            None => {}
+        }
+        Ok(None)
+    }
+
     /// Returns the next instruction, if it is not the following one.
+    #[inline(always)]
     fn exec(&mut self, ins: &'a Ins, env: &Rc<Frame>) -> R<Option<usize>> {
         match ins {
             Ins::Assign(targets, e) => {
@@ -266,33 +316,13 @@ impl<'a> Interp<'a> {
                     let v = self.eval(e, env)?;
                     self.store(&loc, v)?;
                 } else {
-                    let mut locs = Vec::with_capacity(targets.len());
-                    for t in targets {
-                        locs.push(self.locate(t, env)?);
-                    }
-                    let v = self.eval(e, env)?;
-                    for loc in &locs {
-                        self.store(loc, v.clone())?;
-                    }
+                    self.assign_many(targets, e, env)?;
                 }
             }
             Ins::Call(var, args) => {
                 self.call_var(var, args, env, false)?;
             }
-            Ins::Goto(e) => {
-                // A switch designator whose value is undefined makes the go
-                // to statement a dummy statement (4.3.5).
-                match self.desig(e, env)? {
-                    Some(l) => return Err(Signal::Goto(l)),
-                    // On the X1 it is undefined instead (property 10).
-                    None if self.x1() => {
-                        return self.fail(
-                            "go to an undefined switch designator: a dummy statement by the Report (4.3.5), undefined on the X1 (property 10)",
-                        )
-                    }
-                    None => {}
-                }
-            }
+            Ins::Goto(e) => return self.goto(e, env),
             Ins::JumpUnless(c, to) => {
                 if !self.eval_bool(c, env)? {
                     return Ok(Some(*to));
@@ -306,6 +336,7 @@ impl<'a> Interp<'a> {
     }
 
     /// 4.6.4: the for list elements, expanded as the Report expands them.
+    #[inline(never)]
     fn for_statement(&mut self, f: &'a ForCode, env: &Rc<Frame>) -> R<()> {
         for el in &f.elems {
             match el {
@@ -371,6 +402,7 @@ impl<'a> Interp<'a> {
     ///
     ///   first:  address of V; A; B; V := A; C; test
     ///   later:  address of V; value of V; B; V := V + B; C; test
+    #[inline(never)]
     fn x1_step(&mut self, f: &'a ForCode, a: &Ex, b: &Ex, c: &Ex, env: &Rc<Frame>) -> R<()> {
         let mut loc = self.locate(&f.var, env)?;
         let av = self.eval(a, env)?;
@@ -435,6 +467,7 @@ impl<'a> Interp<'a> {
         }
     }
 
+    #[inline(always)]
     fn call_var(&mut self, var: &Var, args: &[Arg], env: &Rc<Frame>, want_value: bool) -> R<Value> {
         match var.what {
             What::Proc(id) => {
@@ -477,6 +510,31 @@ impl<'a> Interp<'a> {
                 frame.slots.borrow_mut()[i + 1] = v;
             }
         }
+        if !code.value_order.is_empty() {
+            self.bind_values(code, args, caller, &frame)?;
+        }
+        let saved = self.line;
+        // A body that is one block is entered directly: one Rust frame
+        // fewer for each call, which is what lets man or boy reach k = 10
+        // on a browser's stack.
+        let r = match &code.body.ins[..] {
+            [(Ins::Block(b), line)] if code.body.labels.is_empty() => {
+                self.line = *line;
+                self.tick().and_then(|_| self.block(b, &frame))
+            }
+            _ => self.exec_code(&code.body, &frame),
+        };
+        self.line = saved;
+        r?;
+        let v = frame.slots.borrow()[0].clone();
+        Ok(v)
+    }
+
+    /// The parameters called by value, in the order the Report's value
+    /// assignment makes them (4.7.3.1). Out of line, to keep call_proc's
+    /// frame small.
+    #[inline(never)]
+    fn bind_values(&mut self, code: &'a ProcCode, args: &[Arg], caller: &Rc<Frame>, frame: &Rc<Frame>) -> R<()> {
         for &i in &code.value_order {
             let v = self.bind(&code.params[i], &args[i], caller)?;
             // A parameter called by value is a local variable, so on the
@@ -503,16 +561,12 @@ impl<'a> Interp<'a> {
             }
             frame.slots.borrow_mut()[i + 1] = v;
         }
-        let saved = self.line;
-        let r = self.exec_code(&code.body, &frame);
-        self.line = saved;
-        r?;
-        let v = frame.slots.borrow()[0].clone();
-        Ok(v)
+        Ok(())
     }
 
     /// 4.7.3: the value assignment for a parameter called by value, and for
     /// one called by name the thunk standing for the actual parameter.
+    #[inline(never)]
     fn bind(&mut self, p: &ParamCode, arg: &Arg, env: &Rc<Frame>) -> R<Value> {
         if p.by_value {
             return match p.spec {
@@ -611,6 +665,7 @@ impl<'a> Interp<'a> {
         }
     }
 
+    #[inline(never)]
     fn index(&mut self, a: &Array, subs: &[Ex], env: &Rc<Frame>, name: &str) -> R<usize> {
         if subs.len() != a.bounds.len() {
             return self.fail(format!("{} has {} subscripts, but is given {}", name, a.bounds.len(), subs.len()));
@@ -627,6 +682,7 @@ impl<'a> Interp<'a> {
         Ok(off)
     }
 
+    #[inline(never)]
     fn store(&mut self, loc: &Loc, v: Value) -> R<()> {
         // A real variable of the X1 holds a mantissa of 40 bits, against 52
         // on the stack (X1–X8 comparison, 3.2), and the store rounds (X1
@@ -726,37 +782,9 @@ impl<'a> Interp<'a> {
             Ex::Const(v) => Ok(v.clone()),
             Ex::Load(var) => self.load(var, env),
             Ex::Label { hops, id } => Ok(Value::Label(LabelVal { frame: up(env, *hops).id, id: *id })),
-            Ex::Index(var, subs) => match self.resolve(var, env)? {
-                Value::Array(a) => {
-                    let i = self.index(&a, subs, env, &var.name)?;
-                    let v = a.data.borrow()[i].clone();
-                    Ok(v)
-                }
-                Value::Switch(s) => match self.switch_select(&s, subs, env, &var.name)? {
-                    Some(l) => Ok(Value::Label(l)),
-                    None => self.fail(format!("the switch designator {}[...] is undefined", var.name)),
-                },
-                v => self.fail(format!("{} is {}, not an array", var.name, v.kind())),
-            },
+            Ex::Index(var, subs) => self.eval_index(var, subs, env),
             Ex::Call(var, args) => self.call_var(var, args, env, true),
-            Ex::Neg(a) => {
-                let v = self.eval(a, env)?;
-                match v {
-                    Value::Int(i) => match i.checked_neg() {
-                        Some(n) => Ok(Value::Int(n)),
-                        None => self.fail("integer overflow"),
-                    },
-                    Value::Real(x) => Ok(Value::Real(-x)),
-                    v => self.fail(format!("'-' needs an arithmetic operand, not {}", v.kind())),
-                }
-            }
-            Ex::Pos(a) => {
-                let v = self.eval(a, env)?;
-                match v {
-                    Value::Int(_) | Value::Real(_) => Ok(v),
-                    v => self.fail(format!("'+' needs an arithmetic operand, not {}", v.kind())),
-                }
-            }
+            Ex::Neg(a) | Ex::Pos(a) => self.unary(ex, a, env),
             Ex::Not(a) => {
                 let b = self.eval_bool(a, env)?;
                 Ok(Value::Bool(!b))
@@ -778,6 +806,37 @@ impl<'a> Interp<'a> {
         }
     }
 
+    #[inline(never)]
+    fn eval_index(&mut self, var: &Var, subs: &[Ex], env: &Rc<Frame>) -> R<Value> {
+        match self.resolve(var, env)? {
+        Value::Array(a) => {
+            let i = self.index(&a, subs, env, &var.name)?;
+            let v = a.data.borrow()[i].clone();
+            Ok(v)
+        }
+        Value::Switch(s) => match self.switch_select(&s, subs, env, &var.name)? {
+            Some(l) => Ok(Value::Label(l)),
+            None => self.fail(format!("the switch designator {}[...] is undefined", var.name)),
+        },
+        v => self.fail(format!("{} is {}, not an array", var.name, v.kind())),
+    }
+    }
+
+    #[inline(never)]
+    fn unary(&mut self, ex: &Ex, a: &Ex, env: &Rc<Frame>) -> R<Value> {
+        let v = self.eval(a, env)?;
+        match (ex, v) {
+            (Ex::Neg(_), Value::Int(i)) => match i.checked_neg() {
+                Some(n) => Ok(Value::Int(n)),
+                None => self.fail("integer overflow"),
+            },
+            (Ex::Neg(_), Value::Real(x)) => Ok(Value::Real(-x)),
+            (Ex::Neg(_), v) => self.fail(format!("'-' needs an arithmetic operand, not {}", v.kind())),
+            (_, v @ (Value::Int(_) | Value::Real(_))) => Ok(v),
+            (_, v) => self.fail(format!("'+' needs an arithmetic operand, not {}", v.kind())),
+        }
+    }
+
     fn eval_bool(&mut self, ex: &Ex, env: &Rc<Frame>) -> R<bool> {
         match self.eval(ex, env)? {
             Value::Bool(b) => Ok(b),
@@ -785,6 +844,7 @@ impl<'a> Interp<'a> {
         }
     }
 
+    #[inline(never)]
     fn switch_select(&mut self, s: &SwitchVal, subs: &[Ex], env: &Rc<Frame>, name: &str) -> R<Option<LabelVal>> {
         if subs.len() != 1 {
             return self.fail(format!("the switch {} takes one subscript", name));
@@ -802,6 +862,7 @@ impl<'a> Interp<'a> {
 
     /// The label a designational expression stands for, or None for an
     /// undefined switch designator.
+    #[inline(never)]
     fn desig(&mut self, ex: &Ex, env: &Rc<Frame>) -> R<Option<LabelVal>> {
         match ex {
             Ex::Label { hops, id } => Ok(Some(LabelVal { frame: up(env, *hops).id, id: *id })),
@@ -903,6 +964,7 @@ impl<'a> Interp<'a> {
         })
     }
 
+    #[inline(never)]
     fn binop(&self, op: BOp, x: Value, y: Value) -> R<Value> {
         match op {
             BOp::Add | BOp::Sub | BOp::Mul => self.arith(op, x, y),
@@ -956,6 +1018,7 @@ impl<'a> Interp<'a> {
 
     /// 3.3.4.3. The type of i↑j depends on the value of j: an integer for
     /// j ≥ 0, a real for j < 0.
+    #[inline(never)]
     fn power(&self, x: Value, y: Value) -> R<Value> {
         match (&x, &y) {
             (Value::Int(i), Value::Int(j)) => {
@@ -1110,6 +1173,7 @@ impl<'a> Interp<'a> {
         Ok(s)
     }
 
+    #[inline(never)]
     fn builtin(&mut self, b: Builtin, args: &[Arg], env: &Rc<Frame>) -> R<Value> {
         use Builtin::*;
         Ok(match b {
