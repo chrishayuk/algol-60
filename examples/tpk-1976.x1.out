@@ -1,1 +1,1 @@
-! line 10: the X1 system does not accept a labelled program; it must start with 'begin' (property 1 of its manual; its compiler fails with stop 0–25)
+! line 12: the X1 system does not accept a labelled program; it must start with 'begin' (property 1 of its manual; its compiler fails with stop 0–25)

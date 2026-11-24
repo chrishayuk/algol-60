@@ -6,7 +6,9 @@ comment The TPK algorithm exactly as Knuth and Trabb Pardo print it, "in a
   read and write are not procedures of the Report, which has no input or
   output, so the program stops at line 13. examples/tpk.alg is the same
   algorithm in the order of the Report with the input and output of the
-  Modified Report, and compare/probes/tpk-1976.a60 runs it on the X1;
+  Modified Report, and compare/probes/tpk-1976.a60 runs it on the X1.
+  Knuth's errata for the 2003 reprint (12 February 2014) change the heading
+  to value t, real t, as the Report wants;
 TPK: begin integer i; real y; real array a[0:10];
   real procedure f(t); real t; value t;
     f := sqrt(abs(t)) + 5 × t ↑ 3;

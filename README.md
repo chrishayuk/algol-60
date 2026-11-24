@@ -44,6 +44,11 @@ same algorithm made legal. On the X1's own compiler the printed program
 fails twice over: its `TPK:` label stops the compiler (property 1 of the
 X1 manual), and the heading is accepted but compiled as a value array.
 See `compare/README.md` and the scan of the page in `docs/scans/`.
+Knuth corrected the heading himself, in his errata for *Selected Papers on
+Computer Languages* (2003), which reprints the paper: "change `real t; value
+t;` to `value t; real t;`" (entry of 12 February 2014,
+https://www-cs-faculty.stanford.edu/~knuth/cl.html). We found nothing
+published on the label or on what the X1's compiler did with the heading.
 
 ## Quick start
 
