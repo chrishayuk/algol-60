@@ -34,6 +34,17 @@ as printed in 1964) gives −67, the answer compilers found; Knuth's own
 hand calculation had guessed −121. `cargo test` checks the values up to
 k = 20.
 
+Knuth and Trabb Pardo's TPK, the program they used in 1976 to compare
+early languages, is printed "in a dialect of Algol 60", and it is not
+quite ALGOL 60: its heading `real t; value t;` puts the specification
+before the value part, which 5.4.1 forbids, and `read` and `write` are
+not in the Report. `examples/tpk-1976.alg` is the text as printed, which
+the Report dialect refuses at the heading; `examples/tpk.alg` is the
+same algorithm made legal. On the X1's own compiler the printed program
+fails twice over: its `TPK:` label stops the compiler (property 1 of the
+X1 manual), and the heading is accepted but compiled as a value array.
+See `compare/README.md` and the scan of the page in `docs/scans/`.
+
 ## Quick start
 
 ```bash
@@ -62,8 +73,8 @@ procedures, arrays, labels, switches and strings as parameters,
 unspecified parameters, and the `) letter string :(` parameter delimiter.
 
 The Report's syntax is enforced where it refuses things: `if a then if b`,
-`a × -b`, `a < b < c` and `if b then for ... else` are errors with a
-message citing the section.
+`a × -b`, `a < b < c`, `if b then for ... else` and a value part after a
+specification are errors with a message citing the section.
 
 Input and output are the procedures of the Modified Report (1976):
 `outstring`, `outinteger`, `outreal`, `inreal`, `ininteger`, `inchar`,

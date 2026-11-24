@@ -1,0 +1,2 @@
+warning: line 2: the value part comes after a specification, against the Report (5.4.1); the X1 compiler accepted it but compiled the parameter as a value array, and what its run-time then did is not known (compare/probes/value-after-spec.a60). Here it is called by value
++.1000000000000⏨+  1 +.1000000000000⏨+  1 +.5000000000000⏨+  1 

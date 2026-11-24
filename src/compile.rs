@@ -203,8 +203,22 @@ pub fn compile(src: &str, dialect: Dialect) -> CResult<Program> {
     let (stmt, notes) = crate::parser::parse_program(lexed.tokens, dialect == Dialect::X1)?;
     let mut warnings = lexed.warnings;
     if dialect == Dialect::X1 {
+        if let Some(line) = notes.program_label {
+            // The manual forbade it, and the 1964 compiler enforces it by
+            // failing: stop 0–25 (compare/probes/tpk-1976.a60 on x1sim).
+            return err(
+                line,
+                "the X1 system does not accept a labelled program; it must start with 'begin' (property 1 of its manual; its compiler fails with stop 0–25)",
+            );
+        }
         for line in notes.letter_delimiters {
             warnings.push(x1_warning(line, 13, "only a comma is permitted as parameter delimiter"));
+        }
+        for line in notes.values_after_specs {
+            warnings.push(format!(
+                "line {}: the value part comes after a specification, against the Report (5.4.1); the X1 compiler accepted it but compiled the parameter as a value array, and what its run-time then did is not known (compare/probes/value-after-spec.a60). Here it is called by value",
+                line
+            ));
         }
     }
     for line in notes.then_ifs {

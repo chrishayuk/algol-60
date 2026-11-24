@@ -143,6 +143,33 @@ fn property_8_no_numeric_labels_and_the_compiler_fails_on_them() {
 }
 
 #[test]
+fn property_1_no_labelled_program_and_the_compiler_fails_on_it() {
+    // Knuth and Trabb Pardo's TPK begins `TPK: begin`. The Report allows a
+    // labelled block; the 1964 compiler stops with 0–25
+    // (compare/probes/tpk-1976.a60).
+    let p = "TPK: begin outinteger(1, 1) end";
+    assert!(algol60::check(p, Dialect::Report).unwrap().is_empty());
+    let e = algol60::check(p, Dialect::X1).unwrap_err();
+    assert!(e.contains("property 1 "), "{}", e);
+}
+
+#[test]
+fn a_value_part_after_a_specification() {
+    // 5.4.1 puts the value part first; TPK (1976) writes `real t; value t;`.
+    // The Report refuses it. The X1 compiler took it and compiled t as a
+    // value array (compare/probes/value-after-spec.a60): a warning here, and
+    // t is called by value.
+    let p = "real x; procedure g(t); real t; value t; begin x := 5; outreal(1, t) end; x := 1; g(x)";
+    assert!(run(Dialect::Report, p).contains("value part must come once, before the specifications (5.4.1)"));
+    assert_eq!(run(Dialect::X1, p), "1 ");
+    let w = algol60::check(&format!("begin {} end", p), Dialect::X1).unwrap();
+    assert!(w.iter().any(|w| w.contains("value array")), "{:?}", w);
+    // Two value parts are refused by the Report too.
+    let q = "procedure g(s, t); value s; value t; real s, t; ; g(1, 2)";
+    assert!(run(Dialect::Report, q).contains("5.4.1"));
+}
+
+#[test]
 fn property_12_no_conditional_statement_after_do() {
     warned("integer i; for i := 1 do if true then i := 2", 12);
 }

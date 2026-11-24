@@ -1,0 +1,8 @@
+b̲e̲g̲i̲n̲ r̲e̲a̲l̲ x;
+  p̲r̲o̲c̲e̲d̲u̲r̲e̲ g(t); r̲e̲a̲l̲ t; v̲a̲l̲u̲e̲ t; b̲e̲g̲i̲n̲ x := 5; print(t) e̲n̲d̲;
+  p̲r̲o̲c̲e̲d̲u̲r̲e̲ h(t); v̲a̲l̲u̲e̲ t; r̲e̲a̲l̲ t; b̲e̲g̲i̲n̲ x := 5; print(t) e̲n̲d̲;
+  p̲r̲o̲c̲e̲d̲u̲r̲e̲ n(t); r̲e̲a̲l̲ t; b̲e̲g̲i̲n̲ x := 5; print(t) e̲n̲d̲;
+  x := 1; g(x);
+  x := 1; h(x);
+  x := 1; n(x); NLCR
+e̲n̲d̲

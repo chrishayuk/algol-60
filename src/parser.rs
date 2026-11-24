@@ -25,6 +25,12 @@ pub struct Notes {
     pub letter_delimiters: Vec<u32>,
     /// Lines where `if` follows `then` (accepted only for the X1).
     pub then_ifs: Vec<u32>,
+    /// Lines where a value part follows a specification, or a second value
+    /// part (accepted only for the X1).
+    pub values_after_specs: Vec<u32>,
+    /// The line of a label on the program itself, which the X1's manual
+    /// forbade (property 1).
+    pub program_label: Option<u32>,
 }
 
 pub fn parse_program(toks: Vec<Token>, x1: bool) -> PResult<(Stmt, Notes)> {
@@ -33,6 +39,9 @@ pub fn parse_program(toks: Vec<Token>, x1: bool) -> PResult<(Stmt, Notes)> {
     while p.eat(&Tok::Semi) {}
     if *p.peek() != Tok::Eof {
         return Err(p.error("the end of the program expected"));
+    }
+    if !s.labels.is_empty() {
+        p.notes.program_label = Some(s.labels[0].1);
     }
     match s.kind {
         SK::Block(_) | SK::Compound(_) => Ok((s, p.notes)),
@@ -391,8 +400,24 @@ impl Parser {
         self.expect(Tok::Semi)?;
         let mut values = Vec::new();
         let mut specs = Vec::new();
+        let mut seen_value = false;
         loop {
-            if self.eat(&Tok::Value) {
+            if *self.peek() == Tok::Value {
+                // 5.4.1: the heading is <value part> <specification part>,
+                // one value part and before any specification. Knuth and
+                // Trabb Pardo's TPK (1976) writes `real t; value t;`. The
+                // X1 compiler took that order without a word, and compiled
+                // the scalar as a value array (compare/probes/value-after-spec.a60).
+                if !specs.is_empty() || seen_value {
+                    if !self.x1 {
+                        return Err(self.error(
+                            "the value part must come once, before the specifications (5.4.1)",
+                        ));
+                    }
+                    self.notes.values_after_specs.push(self.line());
+                }
+                self.bump();
+                seen_value = true;
                 values.extend(self.names()?);
                 self.expect(Tok::Semi)?;
                 continue;

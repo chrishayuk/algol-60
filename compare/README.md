@@ -29,7 +29,7 @@ project's. So where a result is decided by the compiler, x1sim is
 evidence about the real X1. Where it is decided by the run-time, the two
 columns are two independent reconstructions from the same documents.
 
-## Results (23 November 2026)
+## Results (23 November 2026; the three TPK rows 24 November)
 
 | Probe | `--x1` | x1sim | Decided by | Reading |
 | --- | --- | --- | --- | --- |
@@ -39,6 +39,9 @@ columns are two independent reconstructions from the same documents.
 | `declaration-order` | p 3 | p3 | compiler | A procedure before a variable compiles and works, against property 15: the manual's rules were not the compiler's checks. Confirmed |
 | `man-or-boy-unspecified` | −67 | −67 | compiler | Knuth's program as printed, with `x1` … `x5` unspecified against property 19, compiles and gives −67 |
 | `numeric-label` | refused | compiler fails | compiler | `10:` makes the compiler stop with a fatal error (property 8). `--x1` now refuses it |
+| `tpk-1976` | refused | compiler fails | compiler | Knuth and Trabb Pardo's TPK (1976, p. 3) with only `read` and `write` changed to the X1's. Its `TPK: begin` makes the compiler stop with 0–25, "exhausted source store": property 1 says a program is an *unlabelled* block. `--x1` now refuses it |
+| `value-after-spec` | 1 1 5 | compiler accepts, run-time fails | compiler | `real t; value t;`, TPK's heading, against Report 5.4.1. The compiler takes it without a word but emits RVA and VAP ("real value array storage function frame", "value array positioning") for the scalar t, where `value t; real t;` gives TRAD. x1sim's run-time then stops, "Too many dimensions for value array"; what the X1's own did is not known. `--x1` warns and calls t by value |
+| `tpk-x1` | 11 lines | 11 lines | both | TPK with the label dropped and the value part first: all eleven values agree to the 13 digits x1sim prints (216.2458286935 … 6); only the layout differs |
 | `store-40-bits` | 0 | 0 | compiler | `x := 0.1; x - 0.1` is 0, because the compiler stores the constant 0.1 in the same 40-bit form as a variable (`look_for_constant` in x1algol.pas). `--x1` was corrected to match |
 | `boolean-both-operands` | 2 | 2 | compiler | Both operands of `∧` and `∨` are evaluated |
 | `primary-order` | 123 −5 | 123 −5 | compiler | `f(1) − f(2) × f(3)` calls f in the order written, not the order of the operators (property 7). Confirmed |
