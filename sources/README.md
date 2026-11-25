@@ -24,6 +24,7 @@ them into the directories named to check a reading. All were fetched on
 | `cwi-8855/` | J. A. Zonneveld, *Automatic integration of ordinary differential equations*, report R 743, May 1963 | https://ir.cwi.nl/pub/8855 | JAZ023 and JAZ024 with their X1 output; not used yet |
 | `cwi-9223/` | P. J. J. van de Laarschot and J. Nederkoorn, *Text of the second ALGOL 60 translator for the X1*, MR 61, 1963 (220 pages) | https://ir.cwi.nl/pub/9223 | Not read yet |
 | `cwi-x1-programs/` | Programs for the X1 from the CWI software archive: C. H. A. Koster's jungle generator (1964 or earlier) and L. Meertens's Quinio (1964), with photographs of the listings | https://github.com/cwi-software-archive/Algol60 | See `docs/x1.md` |
+| `herbert-900/` | Andrew Herbert's *900-Simulator-in-C* (git clone, commit 6eaac92, 13 August 2026): `emu900`, a simulator of the Elliott 900 series, with store images of Elliott 16K Load and Go Algol (Issue 5, and Herbert's build from Issue 6 sources), and `demos/903algol/euler.txt` and `euler2.txt`, D. Holdsworth's test of the Report's `euler` as changed for each | https://github.com/andrewjherbert/900-Simulator-in-C | The test case in `examples/report-euler.alg` and the 903 runs of `compare/run-903.sh` (`compare/README.md`). Built with `make all`, which needs libpopt (`brew install popt`) |
 
 ## Not found
 

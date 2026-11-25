@@ -95,3 +95,31 @@ To run it on x1sim:
     sources/sergev-x1/build/simulator/x1sim historical/jaz164.alg < historical/jaz164.in
 
 (x1sim wants the extension `.a60`; copy the file first.)
+
+## The Report's euler on the Elliott 903
+
+D. Holdsworth, "Three Experiments with Algol 60" (*Resurrection* 112,
+2026), ran the Revised Report's first example procedure, `euler`, through
+three preserved compilers: KDF9 Whetstone Algol ran it as printed, KDF9
+Kidsgrove Algol stopped in translation (FAIL 017/20), and Elliott 903
+Algol refused it. His program sums 1/n² with eps = 0.0001 and tim = 7.
+Andrew Herbert's simulator (`sources/herbert-900`) has it changed for
+each of two 903 systems: 16K Load and Go Algol Issue 5, and Herbert's
+build from Issue 6 sources. `run-903.sh` runs those, and the same with
+each change undone, into `results/euler-*.903-5` and `.903-6`.
+(25 November 2026)
+
+| Program | Issue 5 | Issue 6 | Reading |
+| --- | --- | --- | --- |
+| Herbert's (`euler.txt` on 5, `euler2.txt` on 6) | 1.635588, 1.644934, 1.625133 | the same | The same as `examples/report-euler.out` to the seven figures printed: 1.63558813640843, 1.64493406684823, 1.62513273362153 |
+| `noswitch`: without the `switch sss := nextterm` declaring the label | the same | — | Herbert added it because a label must be declared before use (restriction 1), but here the label comes before its `goto`, so it is not needed |
+| `value`: `eee(x)` with `value x`, as a Report programmer would write it | ERROR 108 at the call `euler(eee, …)` | run-time error 3 | Error 108: "An actual parameter which is a procedure has one of its parameters called by value" (restriction 13 of the manual). Issue 6 compiles it, then stops with integer overflow |
+| `unwrapped`: `fct(i)` for Herbert's `fct((i))` | — | run-time error 3 | Herbert's note calls the error spurious; wrapping the actual parameter in parentheses avoids it |
+
+So the 903's refusal comes down to one rule, the value parameter of a
+procedure passed as a parameter. Under `--x1`, the Report's `euler` also
+breaks the X1's order of specifications and declarations (property 15),
+which the X1's compiler did not check.
+
+To run: build the simulator (`cd sources/herbert-900 && make all`), then
+`sh compare/run-903.sh`.

@@ -1,0 +1,8 @@
+EULER    
+ EULER  3960
+ERROR NO   108
+LINE NO     34
+    EULER(EEE, SS, 0.0001, 7);
+             ^
+FAIL
+*** Translator ran off end of input tape ***
