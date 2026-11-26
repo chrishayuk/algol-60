@@ -123,3 +123,20 @@ pub fn round_mantissa(x: f64, bits: i32) -> f64 {
     (x * s1 * s2).round() / s1 / s2
 }
 
+impl Drop for Frame {
+    fn drop(&mut self) {
+        crate::measure::frame_dropped(self.slots.get_mut().len());
+    }
+}
+
+impl Drop for Array {
+    fn drop(&mut self) {
+        crate::measure::array_dropped(self.data.get_mut().len());
+    }
+}
+
+impl Drop for Thunk {
+    fn drop(&mut self) {
+        crate::measure::name_dropped();
+    }
+}

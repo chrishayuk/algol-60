@@ -179,6 +179,7 @@ impl<'a> Interp<'a> {
 
     fn frame(&mut self, parent: Option<Rc<Frame>>, n: usize) -> Rc<Frame> {
         self.next_id += 1;
+        crate::measure::frame_made(n);
         Rc::new(Frame { id: self.next_id, parent, slots: std::cell::RefCell::new(vec![Value::Undef; n]) })
     }
 
@@ -245,7 +246,7 @@ impl<'a> Interp<'a> {
                         };
                         bs.push((l, h));
                     }
-                    let a = Rc::new(Array { ty: *ty, bounds: bs, data: std::cell::RefCell::new(vec![Value::zero(*ty); size]) });
+                    let a = Rc::new(crate::measure::made_array(Array { ty: *ty, bounds: bs, data: std::cell::RefCell::new(vec![Value::zero(*ty); size]) }));
                     match place {
                         ArrPlace::Slot(s) => f.slots.borrow_mut()[*s as usize] = Value::Array(a),
                         ArrPlace::Own(i) => self.owns[*i as usize] = Value::Array(a),
@@ -455,7 +456,10 @@ impl<'a> Interp<'a> {
     /// by name back to their actual parameters, but not evaluating them.
     fn resolve(&mut self, var: &Var, env: &Rc<Frame>) -> R<Value> {
         match self.get(var, env) {
-            Value::Name(t) => self.resolve_ex(&t.ex, &t.env),
+            Value::Name(t) => {
+                crate::measure::name_used();
+                self.resolve_ex(&t.ex, &t.env)
+            }
             v => Ok(v),
         }
     }
@@ -492,6 +496,7 @@ impl<'a> Interp<'a> {
     }
 
     fn call_proc(&mut self, id: u32, fenv: Rc<Frame>, args: &[Arg], caller: &Rc<Frame>, want_value: bool) -> R<Value> {
+        let _call = crate::measure::Call::enter();
         let prog = self.prog;
         let code = &prog.procs[id as usize];
         if args.len() != code.params.len() {
@@ -580,7 +585,7 @@ impl<'a> Interp<'a> {
                         for v in a.data.borrow().iter() {
                             data.push(self.convert(v.clone(), t)?);
                         }
-                        Ok(Value::Array(Rc::new(Array { ty: t, bounds: a.bounds.clone(), data: std::cell::RefCell::new(data) })))
+                        Ok(Value::Array(Rc::new(crate::measure::made_array(Array { ty: t, bounds: a.bounds.clone(), data: std::cell::RefCell::new(data) }))))
                     }
                     v => self.fail(format!("the actual parameter for {} is {}, not an array", p.name, v.kind())),
                 },
@@ -589,11 +594,11 @@ impl<'a> Interp<'a> {
                     None => self.fail(format!("the actual parameter for {} is an undefined switch designator", p.name)),
                 },
                 _ => match self.eval(arg, env)? {
-                    Value::Array(a) => Ok(Value::Array(Rc::new(Array {
+                    Value::Array(a) => Ok(Value::Array(Rc::new(crate::measure::made_array(Array {
                         ty: a.ty,
                         bounds: a.bounds.clone(),
                         data: std::cell::RefCell::new(a.data.borrow().clone()),
-                    }))),
+                    })))),
                     v => Ok(v),
                 },
             };
@@ -607,10 +612,10 @@ impl<'a> Interp<'a> {
                 | Value::Switch(_)
                 | Value::Label(_)
                 | Value::Str(_)) => Ok(v),
-                _ => Ok(Value::Name(Rc::new(Thunk { ex: arg.clone(), env: env.clone() }))),
+                _ => Ok(Value::Name(Rc::new(crate::measure::made_thunk(Thunk { ex: arg.clone(), env: env.clone() })))),
             },
             Ex::Label { .. } | Ex::Const(Value::Str(_)) => self.eval(arg, env),
-            _ => Ok(Value::Name(Rc::new(Thunk { ex: arg.clone(), env: env.clone() }))),
+            _ => Ok(Value::Name(Rc::new(crate::measure::made_thunk(Thunk { ex: arg.clone(), env: env.clone() })))),
         }
     }
 
@@ -634,7 +639,7 @@ impl<'a> Interp<'a> {
             What::Slot(s, Kind::Simple(t)) => Ok(Loc::Slot(up(env, var.hops).clone(), s as usize, Some(t))),
             What::Own(i, Kind::Simple(t)) => Ok(Loc::Own(i as usize, t)),
             What::Slot(s, Kind::Formal(conv)) => match self.get(var, env) {
-                Value::Name(t) => match &*t.ex {
+                Value::Name(t) => match (crate::measure::name_used(), &*t.ex).1 {
                     Ex::Load(v) => self.locate_var(v, &t.env),
                     Ex::Index(v, subs) => self.locate_index(v, subs, &t.env),
                     _ => self.fail(format!(
@@ -762,6 +767,8 @@ impl<'a> Interp<'a> {
             What::Builtin(b) => self.builtin(b, &[], env),
             _ => match self.get(var, env) {
                 Value::Name(t) => {
+                    crate::measure::name_used();
+                    crate::measure::name_evaluated();
                     self.check_stack()?;
                     self.eval(&t.ex, &t.env)
                 }
@@ -878,7 +885,10 @@ impl<'a> Interp<'a> {
                 v => self.fail(format!("{} is {}, not a switch", var.name, v.kind())),
             },
             Ex::Load(var) => match self.get(var, env) {
-                Value::Name(t) => self.desig(&t.ex, &t.env),
+                Value::Name(t) => {
+                    crate::measure::name_used();
+                    self.desig(&t.ex, &t.env)
+                }
                 Value::Label(l) => Ok(Some(l)),
                 v => self.fail(format!("{} is {}, not a label", var.name, v.kind())),
             },

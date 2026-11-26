@@ -6,6 +6,7 @@ pub mod builtins;
 pub mod compile;
 pub mod interp;
 pub mod lexer;
+pub mod measure;
 pub mod parser;
 pub mod value;
 

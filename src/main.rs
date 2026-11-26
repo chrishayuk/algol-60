@@ -13,6 +13,8 @@ Options:
                         Electrologica X1 would have, as far as the documents
                         say (docs/x1.md)
       --max-steps <N>   Stop with an error after N steps
+      --measure         After the run, what the program held at its peak, on
+                        standard error (measurement only)
       --check           Report what is wrong with each program without running it
   -h, --help            Show this help
   -V, --version         Show the version";
@@ -21,6 +23,7 @@ fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
     let mut max_steps = None;
     let mut check = false;
+    let mut measure = false;
     let mut dialect = algol60::Dialect::Report;
     let mut eval = None;
     let mut files = Vec::new();
@@ -36,6 +39,7 @@ fn main() -> ExitCode {
                 return ExitCode::SUCCESS;
             }
             "--check" => check = true,
+            "--measure" => measure = true,
             "--x1" => dialect = algol60::Dialect::X1,
             "-e" | "--eval" => {
                 i += 1;
@@ -112,6 +116,12 @@ fn main() -> ExitCode {
     let mut warn = std::io::stderr();
     let r = algol60::run(&src, &mut input, &mut out, &mut warn, algol60::Options { max_steps, dialect });
     drop(out);
+    if measure {
+        eprintln!("quantity\tend\tpeak");
+        for (name, now, peak) in algol60::measure::snapshot() {
+            eprintln!("{}\t{}\t{}", name, now, peak);
+        }
+    }
     match r {
         Ok(()) => ExitCode::SUCCESS,
         Err(e) => {
