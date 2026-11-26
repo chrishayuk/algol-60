@@ -36,6 +36,8 @@ counters! {
     calls: "procedure calls made, in all",
     name_uses: "uses of a name parameter, in all",
     name_evaluations: "evaluations of a name parameter's expression, in all",
+    name_first_evaluations: "first evaluations: an actual parameter evaluated for the first time",
+    name_repeat_evaluations: "repeat evaluations: the same actual parameter, of the same call, evaluated again",
 }
 
 fn add(c: &[AtomicI64; 2], d: i64) {
@@ -76,8 +78,16 @@ pub fn name_used() {
     name_uses(1);
 }
 
-pub fn name_evaluated() {
+/// An actual parameter called by name is evaluated. Its own count tells a
+/// first evaluation from a repeat of the same parameter of the same call.
+pub fn name_evaluated(count: &std::cell::Cell<u64>) {
     name_evaluations(1);
+    if count.get() == 0 {
+        name_first_evaluations(1);
+    } else {
+        name_repeat_evaluations(1);
+    }
+    count.set(count.get() + 1);
 }
 
 /// Held while a procedure call is in progress.

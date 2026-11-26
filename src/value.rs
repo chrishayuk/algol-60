@@ -30,6 +30,8 @@ pub struct SwitchVal {
 pub struct Thunk {
     pub ex: Rc<Ex>,
     pub env: Rc<Frame>,
+    /// how many times this actual parameter has been evaluated (measurement only)
+    pub evaluations: std::cell::Cell<u64>,
 }
 
 pub struct Array {

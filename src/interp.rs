@@ -612,10 +612,10 @@ impl<'a> Interp<'a> {
                 | Value::Switch(_)
                 | Value::Label(_)
                 | Value::Str(_)) => Ok(v),
-                _ => Ok(Value::Name(Rc::new(crate::measure::made_thunk(Thunk { ex: arg.clone(), env: env.clone() })))),
+                _ => Ok(Value::Name(Rc::new(crate::measure::made_thunk(Thunk { ex: arg.clone(), env: env.clone(), evaluations: std::cell::Cell::new(0) })))),
             },
             Ex::Label { .. } | Ex::Const(Value::Str(_)) => self.eval(arg, env),
-            _ => Ok(Value::Name(Rc::new(crate::measure::made_thunk(Thunk { ex: arg.clone(), env: env.clone() })))),
+            _ => Ok(Value::Name(Rc::new(crate::measure::made_thunk(Thunk { ex: arg.clone(), env: env.clone(), evaluations: std::cell::Cell::new(0) })))),
         }
     }
 
@@ -768,7 +768,7 @@ impl<'a> Interp<'a> {
             _ => match self.get(var, env) {
                 Value::Name(t) => {
                     crate::measure::name_used();
-                    crate::measure::name_evaluated();
+                    crate::measure::name_evaluated(&t.evaluations);
                     self.check_stack()?;
                     self.eval(&t.ex, &t.env)
                 }
